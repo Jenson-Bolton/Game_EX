@@ -1,0 +1,8 @@
+{
+  "name": "Game_EX",
+  "version-string": "0.0.0",
+  "dependencies": [
+    "glm",
+    "sdl3"
+  ]
+}
