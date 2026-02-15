@@ -2,7 +2,20 @@
 
 ## Install Instructions
 
-After cloning the repository run `git submodule update --init --recursive`
+### 1. Clone The Repository
+
+First clone the repository by running `git clone https://github.com/Jenson-Bolton/Game_EX.git`
+
+
+### 2. vcpkg
+
+After cloning the repository run `git submodule update --init --recursive`. Followed by:
+
+#### Windows (PowerShell)
+`.\external\vcpkg\bootstrap-vcpkg.bat`
+
+#### macOS / Linux (bash/zsh)
+`./external/vcpkg/bootstrap-vcpkg.sh`
 
 
 ## General specification (floating ideas)
