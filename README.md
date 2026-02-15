@@ -1,5 +1,10 @@
 # Game_EX
 
+## Install Instructions
+
+After cloning the repository run `git submodule update --init --recursive`
+
+
 ## General specification (floating ideas)
 
 Cityscape based in London
