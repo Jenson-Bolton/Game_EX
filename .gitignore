@@ -8,3 +8,28 @@ third_party/emsdk/node/
 third_party/emsdk/python/
 third_party/emsdk/java/
 third_party/emsdk/zips/
+
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+*.sln
+
+# CMake
+build/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# vcpkg build artifacts
+vcpkg_installed/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc.
+structure.txt
