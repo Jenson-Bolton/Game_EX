@@ -4,6 +4,10 @@
   "dependencies": [
     "glm",
     "sdl3",
-    "spdlog"
+    "spdlog",
+    "vulkan",
+    "vulkan-validationlayers",
+    "vulkan-memory-allocator",
+    "vulkan-hpp"
   ]
 }

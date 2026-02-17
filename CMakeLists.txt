@@ -46,6 +46,11 @@ else()
   set(GLM_TARGET glm::glm)
 endif()
 
+# --- Vulkan dependency ---
+if (NOT EMSCRIPTEN)
+    find_package(Vulkan REQUIRED)
+endif()
+
 # ----------------------------
 # Source layout (targets)
 # ----------------------------
@@ -90,7 +95,24 @@ endforeach()
 
 add_library(engine STATIC ${ENGINE_SOURCES})
 target_include_directories(engine PUBLIC "${SRC_DIR}")
-target_link_libraries(engine PUBLIC ${GLM_TARGET} spdlog::spdlog)
+if (NOT EMSCRIPTEN)
+    target_link_libraries(engine
+        PUBLIC
+            ${GLM_TARGET}
+            spdlog::spdlog
+            Vulkan::Vulkan
+    )
+    target_compile_definitions(engine PUBLIC
+        $<$<CONFIG:Debug>:VK_ENABLE_VALIDATION_LAYERS>
+    )
+else()
+    target_link_libraries(engine
+        PUBLIC
+            ${GLM_TARGET}
+            spdlog::spdlog
+    )
+endif()
+
 
 add_library(platform STATIC ${PLATFORM_SOURCES})
 target_include_directories(platform PUBLIC "${SRC_DIR}")
