@@ -1,21 +1,16 @@
-/**
- * @brief Main renderer responsible for drawing all world objects.
- *
- * Handles OpenGL state, shaders, and draw batching.
- * Must be initialized before use.
- */
-class Renderer
-{
-public:
-    /**
-     * @brief Initializes the renderer.
-     * @return True if initialization succeeded.
-     */
-    bool Init();
+#include "core/log/Log.h"
 
-    /**
-     * @brief Renders a frame.
-     * @param deltaTime Time since last frame in seconds.
-     */
-    void Render(float deltaTime);
-};
+#include <filesystem>
+
+int main()
+{
+	// --- Logging ---
+	std::filesystem::create_directories("logs");
+
+	Log::Init();
+
+	LOG_INFO("Game starting...");
+	LOG_DEBUG("Debug logging enabled");
+
+	// sdl etc...
+}

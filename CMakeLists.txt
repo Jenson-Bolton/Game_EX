@@ -11,8 +11,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ----------------------------
-# Dependencies: SDL3 + GLM
+# Dependencies
 # ----------------------------
+
+# --- spdlog ---
+find_package(spdlog CONFIG REQUIRED)
 
 # --- SDL3 dependency ---
 if (EMSCRIPTEN)
@@ -87,7 +90,7 @@ endforeach()
 
 add_library(engine STATIC ${ENGINE_SOURCES})
 target_include_directories(engine PUBLIC "${SRC_DIR}")
-target_link_libraries(engine PUBLIC ${GLM_TARGET})
+target_link_libraries(engine PUBLIC ${GLM_TARGET} spdlog::spdlog)
 
 add_library(platform STATIC ${PLATFORM_SOURCES})
 target_include_directories(platform PUBLIC "${SRC_DIR}")

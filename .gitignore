@@ -1,4 +1,5 @@
 build/
+log/
 out/
 vcpkg_installed/
 .vscode/
