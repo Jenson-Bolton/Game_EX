@@ -10,33 +10,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# --- Collect all source files under src/ (including subfolders) ---
-file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
-)
-
-file(GLOB_RECURSE GAME_HEADERS CONFIGURE_DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hh"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hxx"
-)
-
-if (GAME_SOURCES STREQUAL "")
-  message(FATAL_ERROR "No source files found under src/. Add at least one .cpp file.")
-endif()
-
-add_executable(Game_EX
-  ${GAME_SOURCES}
-  ${GAME_HEADERS}
-)
-
-target_include_directories(Game_EX PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/src"
-)
+# ----------------------------
+# Dependencies: SDL3 + GLM
+# ----------------------------
 
 # --- SDL3 dependency ---
 if (EMSCRIPTEN)
@@ -67,16 +43,94 @@ else()
   set(GLM_TARGET glm::glm)
 endif()
 
-target_link_libraries(Game_EX PRIVATE ${SDL3_TARGET} ${GLM_TARGET})
+# ----------------------------
+# Source layout (targets)
+# ----------------------------
 
-# --- Warnings ---
-if (MSVC)
-  target_compile_options(Game_EX PRIVATE /W4)
-else()
-  target_compile_options(Game_EX PRIVATE -Wall -Wextra -Wpedantic)
+# Helper: glob cpp-like sources
+function(glob_cpp out_var base_dir)
+  file(GLOB_RECURSE _tmp CONFIGURE_DEPENDS
+    "${base_dir}/*.c"
+    "${base_dir}/*.cc"
+    "${base_dir}/*.cpp"
+    "${base_dir}/*.cxx"
+  )
+  set(${out_var} "${_tmp}" PARENT_SCOPE)
+endfunction()
+
+set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+glob_cpp(ENGINE_SOURCES   "${SRC_DIR}/engine")
+glob_cpp(PLATFORM_SOURCES "${SRC_DIR}/platform")
+glob_cpp(GAME_SOURCES     "${SRC_DIR}/game")
+glob_cpp(APP_SOURCES      "${SRC_DIR}/app")
+
+# Transitional support: if you still have .cpp files directly under src/
+# (e.g. src/main.cpp), we’ll compile them into the executable too.
+file(GLOB SRC_ROOT_SOURCES CONFIGURE_DEPENDS
+  "${SRC_DIR}/*.c"
+  "${SRC_DIR}/*.cc"
+  "${SRC_DIR}/*.cpp"
+  "${SRC_DIR}/*.cxx"
+)
+
+# Avoid compiling the same file twice if someone later moves things around weirdly
+set(ALL_LIB_SOURCES ${ENGINE_SOURCES} ${PLATFORM_SOURCES} ${GAME_SOURCES})
+set(APP_ALL_SOURCES ${APP_SOURCES} ${SRC_ROOT_SOURCES})
+foreach(_f IN LISTS ALL_LIB_SOURCES)
+  list(REMOVE_ITEM APP_ALL_SOURCES "${_f}")
+endforeach()
+
+# ----------------------------
+# Libraries
+# ----------------------------
+
+add_library(engine STATIC ${ENGINE_SOURCES})
+target_include_directories(engine PUBLIC "${SRC_DIR}")
+target_link_libraries(engine PUBLIC ${GLM_TARGET})
+
+add_library(platform STATIC ${PLATFORM_SOURCES})
+target_include_directories(platform PUBLIC "${SRC_DIR}")
+target_link_libraries(platform PUBLIC ${SDL3_TARGET})
+
+add_library(game STATIC ${GAME_SOURCES})
+target_include_directories(game PUBLIC "${SRC_DIR}")
+target_link_libraries(game PUBLIC engine)
+
+# ----------------------------
+# Executable
+# ----------------------------
+
+if (APP_ALL_SOURCES STREQUAL "")
+  message(FATAL_ERROR
+    "No app sources found. Add src/app/main.cpp (recommended) or keep a .cpp in src/ root temporarily."
+  )
 endif()
 
-# --- Platform ---
+add_executable(Game_EX ${APP_ALL_SOURCES})
+target_include_directories(Game_EX PRIVATE "${SRC_DIR}")
+target_link_libraries(Game_EX PRIVATE engine platform game)
+
+# ----------------------------
+# Warnings
+# ----------------------------
+
+if (MSVC)
+  target_compile_options(engine   PRIVATE /W4)
+  target_compile_options(platform PRIVATE /W4)
+  target_compile_options(game     PRIVATE /W4)
+  target_compile_options(Game_EX  PRIVATE /W4)
+else()
+  target_compile_options(engine   PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(platform PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(game     PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(Game_EX  PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+# ----------------------------
+# Platform properties
+# ----------------------------
+
 if (APPLE)
   set_target_properties(Game_EX PROPERTIES
     MACOSX_BUNDLE TRUE
