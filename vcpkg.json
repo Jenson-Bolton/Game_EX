@@ -8,6 +8,7 @@
     "vulkan",
     "vulkan-validationlayers",
     "vulkan-memory-allocator",
-    "vulkan-hpp"
+    "vulkan-hpp",
+    "tinyobjloader"
   ]
 }

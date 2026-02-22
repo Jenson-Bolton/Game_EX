@@ -22,13 +22,13 @@
     },
     {
       "name": "win-debug",
-      "displayName": "Windows Debug (MSVC)",
-      "generator": "Visual Studio 17 2022",
+      "displayName": "Windows Debug (Ninja)",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "CMAKE_CONFIGURATION_TYPES": "Debug",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_FEATURE_FLAGS": "manifests"
+        "VCPKG_FEATURE_FLAGS": "manifests,binarycaching",
+        "VCPKG_BINARY_SOURCES": "clear;files,C:/vcpkg_cache,readwrite"
       }
     },
     {
