@@ -29,9 +29,18 @@ if (EMSCRIPTEN)
 
   set(SDL3_TARGET SDL3::SDL3-static)
 else()
-  # Native platforms: use vcpkg-provided SDL3
-  find_package(SDL3 CONFIG REQUIRED)
-  set(SDL3_TARGET SDL3::SDL3)
+  # Native platforms: prefer system SDL3, fallback to vendored SDL3
+  find_package(SDL3 CONFIG QUIET)
+  if (SDL3_FOUND)
+    set(SDL3_TARGET SDL3::SDL3)
+  else()
+    set(SDL_SHARED ON CACHE BOOL "" FORCE)
+    set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+    add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL)
+    set(SDL3_TARGET SDL3::SDL3)
+  endif()
 endif()
 
 # --- GLM dependency ---
@@ -100,6 +109,7 @@ if (NOT EMSCRIPTEN)
         PUBLIC
             ${GLM_TARGET}
             spdlog::spdlog
+            ${SDL3_TARGET}
             Vulkan::Vulkan
     )
     target_compile_definitions(engine PUBLIC
@@ -110,6 +120,7 @@ else()
         PUBLIC
             ${GLM_TARGET}
             spdlog::spdlog
+            ${SDL3_TARGET}
     )
 endif()
 
@@ -134,7 +145,7 @@ endif()
 
 add_executable(Game_EX ${APP_ALL_SOURCES})
 target_include_directories(Game_EX PRIVATE "${SRC_DIR}")
-target_link_libraries(Game_EX PRIVATE engine platform game)
+target_link_libraries(Game_EX PRIVATE engine platform game ${SDL3_TARGET})
 
 # ----------------------------
 # Warnings

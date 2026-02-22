@@ -1,35 +1,48 @@
+# Build output
 build/
+build_*/
 out/
+bin/
+lib/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# Generated docs
+docs/generated/
+
+# Generated shader binaries
+*.spv
+
+# Local toolchains / SDK downloads
 vcpkg_installed/
-.vscode/
 third_party/python-win/
 third_party/emsdk/upstream/
 third_party/emsdk/node/
 third_party/emsdk/python/
 third_party/emsdk/java/
 third_party/emsdk/zips/
+tools/emsdk/
+*.dmg
+
+# IDE / Editor
+.vscode/
+.idea/
+.vs/
 
 # Visual Studio
-.vs/
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
 *.sln
 
-# CMake
-build/
-out/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-
-# vcpkg build artifacts
-vcpkg_installed/
-
 # OS
 .DS_Store
 Thumbs.db
 
-# Misc.
+# Misc
 structure.txt
