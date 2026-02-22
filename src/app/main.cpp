@@ -1,6 +1,8 @@
 //#include "core/log/Log.h"
 
 #include <filesystem>
+#include "platform/IWindow.h"
+#include "engine/renderer/IRenderer.h"
 
 int main()
 {
