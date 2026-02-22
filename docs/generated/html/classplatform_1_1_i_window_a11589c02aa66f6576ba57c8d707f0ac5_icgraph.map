@@ -1,0 +1,5 @@
+<map id="platform::IWindow::getNativeHandle" name="platform::IWindow::getNativeHandle">
+<area shape="rect" id="Node000001" title="Get platform native handles needed by render backends." alt="" coords="231,5,366,46"/>
+<area shape="rect" id="Node000002" href="$class_open_g_l_renderer.html#a1c3d51311679db40466261ccc9c4a7db" title="Create the renderer using the given window." alt="" coords="5,13,183,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,28,183,28,183,23,215,23"/>
+</map>

@@ -1,0 +1,87 @@
+\doxysection{IRenderer.\+h}
+\hypertarget{_i_renderer_8h_source}{}\label{_i_renderer_8h_source}\index{src/engine/renderer/IRenderer.h@{src/engine/renderer/IRenderer.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00004\ }
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <vulkan/vulkan.hpp>}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Include\ IWindow\ definition}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ "{}../../platform/IWindow.h"{}}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{keyword}{using\ namespace\ }platform;}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00020\ \textcolor{keyword}{class\ }\doxymbox{\hyperlink{class_i_renderer}{IRenderer}}}
+\DoxyCodeLine{00021\ \{}
+\DoxyCodeLine{00022\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keyword}{virtual}\ \doxymbox{\hyperlink{class_i_renderer}{\string~IRenderer}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{InitInfo}}}
+\DoxyCodeLine{00029\ \ \ \ \ \{}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info_a0561457971b16ec7d40230b67f920eab}{enableValidation}}\ =\ \textcolor{keyword}{true};\ }
+\DoxyCodeLine{00031\ \ \ \ \ \};}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keyword}{enum\ class}\ \doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{ShaderStage}}\ :\ uint8\_t}
+\DoxyCodeLine{00037\ \ \ \ \ \{}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ Vertex,}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ Fragment}
+\DoxyCodeLine{00040\ \ \ \ \ \};}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{ShaderHandle}}\ \{\ uint64\_t\ \textcolor{keywordtype}{id}\ =\ 0;\ \};}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{PipelineHandle}}\ \{\ uint64\_t\ \textcolor{keywordtype}{id}\ =\ 0;\ \};}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{BufferHandle}}\ \{\ uint64\_t\ \textcolor{keywordtype}{id}\ =\ 0;\ \};}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{VertexPC}}}
+\DoxyCodeLine{00053\ \ \ \ \ \{}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ px,\ py;}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ r,\ g,\ b;}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ vk::VertexInputBindingDescription\ getBindingDescription()}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ \ \ \ \ vk::VertexInputBindingDescription\ bindingDescription\{\};}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ \ \ \ bindingDescription.binding\ =\ 0;}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \ \ \ \ bindingDescription.stride\ =\ \textcolor{keyword}{sizeof}(\doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{VertexPC}});}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \ \ \ \ bindingDescription.inputRate\ =\ vk::VertexInputRate::eVertex;}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ bindingDescription;}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ std::array<vk::VertexInputAttributeDescription,\ 2>\ getAttributeDescriptions()}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ \ \ \ std::array<vk::VertexInputAttributeDescription,\ 2>\ attributeDescriptions\{\};}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[0].binding\ =\ 0;}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[0].location\ =\ 0;}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[0].format\ =\ vk::Format::eR32G32Sfloat;}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[0].offset\ =\ offsetof(\doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{VertexPC}},\ px);}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[1].binding\ =\ 0;}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[1].location\ =\ 1;}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[1].format\ =\ vk::Format::eR32G32B32Sfloat;}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ \ \ \ attributeDescriptions[1].offset\ =\ offsetof(\doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{VertexPC}},\ r);}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ attributeDescriptions;}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00082\ \ \ \ \ \};}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{class_i_renderer_a6993652cae0d760918d902a12a926ce1}{initialize}}(\textcolor{keyword}{const}\ \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{InitInfo}}\&\ info,\ \doxymbox{\hyperlink{classplatform_1_1_i_window}{IWindow}}\&\ window)\ =\ 0;}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{class_i_renderer_a47c3a5365f6a92f06f52d4b2b3d1ccba}{shutdown}}()\ =\ 0;}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{class_i_renderer_a07a0961686728a68bc1f62fba3cf05ac}{beginFrame}}()\ =\ 0;}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{class_i_renderer_a785afbc01e51560d3f1b380938092de0}{endFrame}}()\ =\ 0;}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keyword}{virtual}\ \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{ShaderHandle}}\ \doxymbox{\hyperlink{class_i_renderer_a531660feac5269bf45f64b68c0484396}{createShader}}(\doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{ShaderStage}}\ stage,\ \textcolor{keyword}{const}\ std::vector<uint8\_t>\&\ bytecode)\ =\ 0;}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keyword}{virtual}\ \doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{PipelineHandle}}\ \doxymbox{\hyperlink{class_i_renderer_a7ab904c4b9b0af30c7a289037535733c}{createTrianglePipeline}}(\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{ShaderHandle}}\ vs,\ \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{ShaderHandle}}\ fs)\ =\ 0;}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keyword}{virtual}\ \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{BufferHandle}}\ \doxymbox{\hyperlink{class_i_renderer_ac0677203e6195973cd4c65602ecc5507}{createVertexBuffer}}(\textcolor{keyword}{const}\ \doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{VertexPC}}*\ vertices,\ uint32\_t\ vertexCount)\ =\ 0;}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{class_i_renderer_a1823d7197747d91b5f5f7e10a0a889d0}{drawTriangle}}(\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{PipelineHandle}}\ pipeline,\ \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{BufferHandle}}\ vertexBuffer,\ uint32\_t\ vertexCount)\ =\ 0;}
+\DoxyCodeLine{00128\ \};}
+
+\end{DoxyCode}

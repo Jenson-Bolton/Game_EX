@@ -1,0 +1,5 @@
+<map id="IRenderer::createTrianglePipeline" name="IRenderer::createTrianglePipeline">
+<area shape="rect" id="Node000001" title="Simple rendering pipeline for a coloured triangle." alt="" coords="194,5,362,46"/>
+<area shape="rect" id="Node000002" href="$class_hello_triangle_game.html#a10f42ca8f9923766d58bc380a93723a4" title="Initialize GPU resources for the demo." alt="" coords="5,5,146,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="179,28,146,28,146,23,179,23"/>
+</map>

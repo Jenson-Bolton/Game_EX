@@ -1,0 +1,101 @@
+\doxysection{platform::\+Sdl\+Window Class Reference}
+\hypertarget{classplatform_1_1_sdl_window}{}\label{classplatform_1_1_sdl_window}\index{platform::SdlWindow@{platform::SdlWindow}}
+
+
+Inheritance diagram for platform::\+Sdl\+Window:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=187pt]{classplatform_1_1_sdl_window__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for platform::\+Sdl\+Window:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=187pt]{classplatform_1_1_sdl_window__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classplatform_1_1_sdl_window_a5770d1fb9d09b7eec96c9af64d78e5d5}\label{classplatform_1_1_sdl_window_a5770d1fb9d09b7eec96c9af64d78e5d5} 
+bool {\bfseries initialize} (const char \texorpdfstring{$\ast$}{*}title, int width, int height)
+\item 
+void \doxymbox{\hyperlink{classplatform_1_1_sdl_window_aee072a2ec5d2899f0903ba9ae2a79c0d}{poll\+Events}} () override
+\begin{DoxyCompactList}\small\item\em Poll window/\+input events and update internal state. \end{DoxyCompactList}\item 
+bool \doxymbox{\hyperlink{classplatform_1_1_sdl_window_a4eadf0a821c54e50e99be0feaaf3e15e}{should\+Close}} () const override
+\begin{DoxyCompactList}\small\item\em Whether the window requested to close. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{classplatform_1_1_sdl_window_af6223505d62994b35f0da775e119b527}{get\+Framebuffer\+Size}} (uint32\+\_\+t \&out\+Width, uint32\+\_\+t \&out\+Height) const override
+\begin{DoxyCompactList}\small\item\em Get drawable framebuffer size in pixels (not logical points). \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{structplatform_1_1_i_window_1_1_native_window_handle}{Native\+Window\+Handle}} \doxymbox{\hyperlink{classplatform_1_1_sdl_window_ad2b5ef482676fd1ef107b99e6bb4945c}{get\+Native\+Handle}} () const override
+\begin{DoxyCompactList}\small\item\em Get platform native handles needed by render backends. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{classplatform_1_1_sdl_window_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classplatform_1_1_sdl_window_af6223505d62994b35f0da775e119b527}\index{platform::SdlWindow@{platform::SdlWindow}!getFramebufferSize@{getFramebufferSize}}
+\index{getFramebufferSize@{getFramebufferSize}!platform::SdlWindow@{platform::SdlWindow}}
+\doxysubsubsection{\texorpdfstring{getFramebufferSize()}{getFramebufferSize()}}
+{\footnotesize\ttfamily \label{classplatform_1_1_sdl_window_af6223505d62994b35f0da775e119b527} 
+void platform::\+\+Sdl\+Window::\+get\+Framebuffer\+Size (\begin{DoxyParamCaption}\item[{uint32\+\_\+t \&}]{out\+Width}{, }\item[{uint32\+\_\+t \&}]{out\+Height}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Get drawable framebuffer size in pixels (not logical points). 
+
+
+
+Implements \doxymbox{\hyperlink{classplatform_1_1_i_window_ae12179b3211ce5fbedd9f246f90d2f03}{platform::\+\+IWindow}}.
+
+\Hypertarget{classplatform_1_1_sdl_window_ad2b5ef482676fd1ef107b99e6bb4945c}\index{platform::SdlWindow@{platform::SdlWindow}!getNativeHandle@{getNativeHandle}}
+\index{getNativeHandle@{getNativeHandle}!platform::SdlWindow@{platform::SdlWindow}}
+\doxysubsubsection{\texorpdfstring{getNativeHandle()}{getNativeHandle()}}
+{\footnotesize\ttfamily \label{classplatform_1_1_sdl_window_ad2b5ef482676fd1ef107b99e6bb4945c} 
+\doxymbox{\hyperlink{structplatform_1_1_i_window_1_1_native_window_handle}{IWindow::\+\+Native\+Window\+Handle}} platform::\+\+Sdl\+Window::\+get\+Native\+Handle (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Get platform native handles needed by render backends. 
+
+
+
+Implements \doxymbox{\hyperlink{classplatform_1_1_i_window_a11589c02aa66f6576ba57c8d707f0ac5}{platform::\+\+IWindow}}.
+
+\Hypertarget{classplatform_1_1_sdl_window_aee072a2ec5d2899f0903ba9ae2a79c0d}\index{platform::SdlWindow@{platform::SdlWindow}!pollEvents@{pollEvents}}
+\index{pollEvents@{pollEvents}!platform::SdlWindow@{platform::SdlWindow}}
+\doxysubsubsection{\texorpdfstring{pollEvents()}{pollEvents()}}
+{\footnotesize\ttfamily \label{classplatform_1_1_sdl_window_aee072a2ec5d2899f0903ba9ae2a79c0d} 
+void platform::\+\+Sdl\+Window::\+poll\+Events (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Poll window/\+input events and update internal state. 
+
+
+
+Implements \doxymbox{\hyperlink{classplatform_1_1_i_window_a77206ce95655f5bc032f6405e378f259}{platform::\+\+IWindow}}.
+
+\Hypertarget{classplatform_1_1_sdl_window_a4eadf0a821c54e50e99be0feaaf3e15e}\index{platform::SdlWindow@{platform::SdlWindow}!shouldClose@{shouldClose}}
+\index{shouldClose@{shouldClose}!platform::SdlWindow@{platform::SdlWindow}}
+\doxysubsubsection{\texorpdfstring{shouldClose()}{shouldClose()}}
+{\footnotesize\ttfamily \label{classplatform_1_1_sdl_window_a4eadf0a821c54e50e99be0feaaf3e15e} 
+bool platform::\+\+Sdl\+Window::\+should\+Close (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Whether the window requested to close. 
+
+
+
+Implements \doxymbox{\hyperlink{classplatform_1_1_i_window_a0812370e5b9e35f444e2d6b816c9b3d9}{platform::\+\+IWindow}}.
+
+
+
+The documentation for this class was generated from the following files:\+\begin{DoxyCompactItemize}
+\item 
+src/\+platform/\+sdl/\+Sdl\+Window.\+h\item 
+src/\+platform/\+sdl/\+Sdl\+Window.\+cpp\end{DoxyCompactItemize}

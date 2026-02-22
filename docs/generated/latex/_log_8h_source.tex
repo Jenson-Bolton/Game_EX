@@ -1,0 +1,31 @@
+\doxysection{Log.\+h}
+\hypertarget{_log_8h_source}{}\label{_log_8h_source}\index{src/engine/core/log/Log.h@{src/engine/core/log/Log.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <spdlog/spdlog.h>}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{keyword}{class\ }\doxymbox{\hyperlink{class_log}{Log}}}
+\DoxyCodeLine{00007\ \{}
+\DoxyCodeLine{00008\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00009\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ Init();}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \ \ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{static}\ std::shared\_ptr<spdlog::logger>\&\ GetLogger()}
+\DoxyCodeLine{00012\ \ \ \ \ \{}
+\DoxyCodeLine{00013\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ s\_Logger;}
+\DoxyCodeLine{00014\ \ \ \ \ \}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keyword}{static}\ std::shared\_ptr<spdlog::logger>\ s\_Logger;}
+\DoxyCodeLine{00018\ \};}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ LOG\_TRACE(...)\ \ \ \ Log::GetLogger()-\/>trace(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#define\ LOG\_DEBUG(...)\ \ \ \ Log::GetLogger()-\/>debug(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#define\ LOG\_INFO(...)\ \ \ \ \ Log::GetLogger()-\/>info(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ LOG\_WARN(...)\ \ \ \ \ Log::GetLogger()-\/>warn(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ LOG\_ERROR(...)\ \ \ \ Log::GetLogger()-\/>error(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#define\ LOG\_CRITICAL(...)\ Log::GetLogger()-\/>critical(\_\_VA\_ARGS\_\_)}}
+
+\end{DoxyCode}

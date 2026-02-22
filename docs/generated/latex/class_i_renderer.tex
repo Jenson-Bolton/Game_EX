@@ -1,0 +1,233 @@
+\doxysection{IRenderer Class Reference}
+\hypertarget{class_i_renderer}{}\label{class_i_renderer}\index{IRenderer@{IRenderer}}
+
+
+Renderer Interface.  
+
+
+
+
+{\ttfamily \+\#include $<$IRenderer.\+h$>$}
+
+
+
+Inheritance diagram for IRenderer:\+
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=166pt]{class_i_renderer__inherit__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{Init\+Info}}
+\begin{DoxyCompactList}\small\item\em Initialization paramters for the renderer. \end{DoxyCompactList}\item 
+struct \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}}
+\begin{DoxyCompactList}\small\item\em Opaque GPU resource handles owned by the backend. \end{DoxyCompactList}\item 
+struct \doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}}
+\item 
+struct \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}}
+\item 
+struct \doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{Vertex\+PC}}
+\begin{DoxyCompactList}\small\item\em Vertex format for the hello-\/triangle demo (pos + color). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_i_renderer_a0603f41a720e63a343018a755b33a68d}\label{class_i_renderer_a0603f41a720e63a343018a755b33a68d} 
+enum class \doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{Shader\+Stage}} :\+ uint8\+\_\+t \{ {\bfseries Vertex}
+, {\bfseries Fragment}
+ \}
+\begin{DoxyCompactList}\small\item\em Shader stage enumeration. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual bool \doxymbox{\hyperlink{class_i_renderer_a6993652cae0d760918d902a12a926ce1}{initialize}} (const \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{Init\+Info}} \&info, \doxymbox{\hyperlink{classplatform_1_1_i_window}{IWindow}} \&window)=0
+\begin{DoxyCompactList}\small\item\em Create the renderer using the given window. \end{DoxyCompactList}\item 
+virtual void \doxymbox{\hyperlink{class_i_renderer_a47c3a5365f6a92f06f52d4b2b3d1ccba}{shutdown}} ()=0
+\begin{DoxyCompactList}\small\item\em Shutdown and release all GPU resources. \end{DoxyCompactList}\item 
+virtual bool \doxymbox{\hyperlink{class_i_renderer_a07a0961686728a68bc1f62fba3cf05ac}{begin\+Frame}} ()=0
+\begin{DoxyCompactList}\small\item\em Begin rendering a new frame. \end{DoxyCompactList}\item 
+virtual void \doxymbox{\hyperlink{class_i_renderer_a785afbc01e51560d3f1b380938092de0}{end\+Frame}} ()=0
+\begin{DoxyCompactList}\small\item\em End rendering and present. \end{DoxyCompactList}\item 
+virtual \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} \doxymbox{\hyperlink{class_i_renderer_a531660feac5269bf45f64b68c0484396}{create\+Shader}} (\doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{Shader\+Stage}} stage, const std::\+vector$<$ uint8\+\_\+t $>$ \&bytecode)=0
+\begin{DoxyCompactList}\small\item\em Create a shader drom backend-\/specific bytecode. \end{DoxyCompactList}\item 
+virtual \doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}} \doxymbox{\hyperlink{class_i_renderer_a7ab904c4b9b0af30c7a289037535733c}{create\+Triangle\+Pipeline}} (\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} vs, \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} fs)=0
+\begin{DoxyCompactList}\small\item\em Simple rendering pipeline for a coloured triangle. \end{DoxyCompactList}\item 
+virtual \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}} \doxymbox{\hyperlink{class_i_renderer_ac0677203e6195973cd4c65602ecc5507}{create\+Vertex\+Buffer}} (const \doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{Vertex\+PC}} \texorpdfstring{$\ast$}{*}vertices, uint32\+\_\+t vertex\+Count)=0
+\begin{DoxyCompactList}\small\item\em Create and immutable vertex buffer. \end{DoxyCompactList}\item 
+virtual void \doxymbox{\hyperlink{class_i_renderer_a1823d7197747d91b5f5f7e10a0a889d0}{draw\+Triangle}} (\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}} pipeline, \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}} vertex\+Buffer, uint32\+\_\+t vertex\+Count)=0
+\begin{DoxyCompactList}\small\item\em Record a ddraw of the given vertex buffer using the provide pipeline. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Renderer Interface. 
+
+The engine \& game depend only on this interface. Backends (Vulkan, B3\+D12, Metal) implement these calls. 
+
+\label{doc-func-members}
+\Hypertarget{class_i_renderer_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_i_renderer_a07a0961686728a68bc1f62fba3cf05ac}\index{IRenderer@{IRenderer}!beginFrame@{beginFrame}}
+\index{beginFrame@{beginFrame}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{beginFrame()}{beginFrame()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a07a0961686728a68bc1f62fba3cf05ac} 
+virtual bool IRenderer::\+begin\+Frame (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Begin rendering a new frame. 
+
+\begin{DoxyReturn}{Returns}
+false if the frame cannot be started (e.\+g. minimized). 
+\end{DoxyReturn}
+
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_a49a0e593dc7c0e8a9665629e3dd9c35c}{Vulkan\+Renderer}}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_i_renderer_a07a0961686728a68bc1f62fba3cf05ac_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_i_renderer_a531660feac5269bf45f64b68c0484396}\index{IRenderer@{IRenderer}!createShader@{createShader}}
+\index{createShader@{createShader}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{createShader()}{createShader()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a531660feac5269bf45f64b68c0484396} 
+virtual \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} IRenderer::\+create\+Shader (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{Shader\+Stage}}}]{stage}{, }\item[{const std::\+vector$<$ uint8\+\_\+t $>$ \&}]{bytecode}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Create a shader drom backend-\/specific bytecode. 
+
+For Vulkan, this is SPIR-\/V. 
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_a13df96e25be1150bfd5c631175823bb0}{Vulkan\+Renderer}}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=344pt]{class_i_renderer_a531660feac5269bf45f64b68c0484396_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_i_renderer_a7ab904c4b9b0af30c7a289037535733c}\index{IRenderer@{IRenderer}!createTrianglePipeline@{createTrianglePipeline}}
+\index{createTrianglePipeline@{createTrianglePipeline}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{createTrianglePipeline()}{createTrianglePipeline()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a7ab904c4b9b0af30c7a289037535733c} 
+virtual \doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}} IRenderer::\+create\+Triangle\+Pipeline (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}}}]{vs}{, }\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}}}]{fs}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Simple rendering pipeline for a coloured triangle. 
+
+Keeping the demo small. 
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_a901d2f93955d42e35d31e3030a0e2463}{Vulkan\+Renderer}}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=348pt]{class_i_renderer_a7ab904c4b9b0af30c7a289037535733c_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_i_renderer_ac0677203e6195973cd4c65602ecc5507}\index{IRenderer@{IRenderer}!createVertexBuffer@{createVertexBuffer}}
+\index{createVertexBuffer@{createVertexBuffer}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{createVertexBuffer()}{createVertexBuffer()}}
+{\footnotesize\ttfamily \label{class_i_renderer_ac0677203e6195973cd4c65602ecc5507} 
+virtual \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}} IRenderer::\+create\+Vertex\+Buffer (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{Vertex\+PC}} \texorpdfstring{$\ast$}{*}}]{vertices}{, }\item[{uint32\+\_\+t}]{vertex\+Count}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Create and immutable vertex buffer. 
+
+
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_aa82d67e870e8653690e1a5c757257173}{Vulkan\+Renderer}}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_i_renderer_ac0677203e6195973cd4c65602ecc5507_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_i_renderer_a1823d7197747d91b5f5f7e10a0a889d0}\index{IRenderer@{IRenderer}!drawTriangle@{drawTriangle}}
+\index{drawTriangle@{drawTriangle}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{drawTriangle()}{drawTriangle()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a1823d7197747d91b5f5f7e10a0a889d0} 
+virtual void IRenderer::\+draw\+Triangle (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}}}]{pipeline}{, }\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}}}]{vertex\+Buffer}{, }\item[{uint32\+\_\+t}]{vertex\+Count}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Record a ddraw of the given vertex buffer using the provide pipeline. 
+
+
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_af49428876664107a01b28e6aba2d5e90}{Vulkan\+Renderer}}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_i_renderer_a1823d7197747d91b5f5f7e10a0a889d0_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_i_renderer_a785afbc01e51560d3f1b380938092de0}\index{IRenderer@{IRenderer}!endFrame@{endFrame}}
+\index{endFrame@{endFrame}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{endFrame()}{endFrame()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a785afbc01e51560d3f1b380938092de0} 
+virtual void IRenderer::\+end\+Frame (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+End rendering and present. 
+
+
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_a4e45302f6d2d76d2982c1725a4eb715b}{Vulkan\+Renderer}}.
+
+Here is the caller graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=345pt]{class_i_renderer_a785afbc01e51560d3f1b380938092de0_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_i_renderer_a6993652cae0d760918d902a12a926ce1}\index{IRenderer@{IRenderer}!initialize@{initialize}}
+\index{initialize@{initialize}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{initialize()}{initialize()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a6993652cae0d760918d902a12a926ce1} 
+virtual bool IRenderer::\+initialize (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{Init\+Info}} \&}]{info}{, }\item[{\doxymbox{\hyperlink{classplatform_1_1_i_window}{IWindow}} \&}]{window}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Create the renderer using the given window. 
+
+
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_afcd60f36209342eb84112d9f1e5181e1}{Vulkan\+Renderer}}.
+
+\Hypertarget{class_i_renderer_a47c3a5365f6a92f06f52d4b2b3d1ccba}\index{IRenderer@{IRenderer}!shutdown@{shutdown}}
+\index{shutdown@{shutdown}!IRenderer@{IRenderer}}
+\doxysubsubsection{\texorpdfstring{shutdown()}{shutdown()}}
+{\footnotesize\ttfamily \label{class_i_renderer_a47c3a5365f6a92f06f52d4b2b3d1ccba} 
+virtual void IRenderer::\+shutdown (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Shutdown and release all GPU resources. 
+
+
+
+Implemented in \doxymbox{\hyperlink{class_vulkan_renderer_a8f1f20449cbd646ff5d677916c516afd}{Vulkan\+Renderer}}.
+
+
+
+The documentation for this class was generated from the following file:\+\begin{DoxyCompactItemize}
+\item 
+src/\+engine/\+renderer/\+IRenderer.\+h\end{DoxyCompactItemize}

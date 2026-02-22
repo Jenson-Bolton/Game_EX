@@ -1,0 +1,31 @@
+\doxysection{IWindow.\+h}
+\hypertarget{_i_window_8h_source}{}\label{_i_window_8h_source}\index{src/platform/IWindow.h@{src/platform/IWindow.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{keyword}{namespace\ }platform}
+\DoxyCodeLine{00005\ \{}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keyword}{class\ }\doxymbox{\hyperlink{classplatform_1_1_i_window}{IWindow}}}
+\DoxyCodeLine{00014\ \ \ \ \ \{}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00019\ \ \ \ \ \ \ \ \ \textcolor{keyword}{struct\ }\doxymbox{\hyperlink{structplatform_1_1_i_window_1_1_native_window_handle}{NativeWindowHandle}}}
+\DoxyCodeLine{00020\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00021\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ \doxymbox{\hyperlink{structplatform_1_1_i_window_1_1_native_window_handle_a9d4ec2d24330e74480495bbcacae8bf5}{platformWindow}}\ \ =\ \textcolor{keyword}{nullptr};\ }
+\DoxyCodeLine{00022\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ \doxymbox{\hyperlink{structplatform_1_1_i_window_1_1_native_window_handle_aac510a81002b4378324b24c5c7eafbbc}{platformDisplay}}\ =\ \textcolor{keyword}{nullptr};\ }
+\DoxyCodeLine{00023\ \ \ \ \ \ \ \ \ \};}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \textcolor{keyword}{virtual}\ \doxymbox{\hyperlink{classplatform_1_1_i_window}{\string~IWindow}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{classplatform_1_1_i_window_a77206ce95655f5bc032f6405e378f259}{pollEvents}}()\ =\ 0;}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{classplatform_1_1_i_window_a0812370e5b9e35f444e2d6b816c9b3d9}{shouldClose}}()\ \textcolor{keyword}{const}\ =\ 0;}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{classplatform_1_1_i_window_ae12179b3211ce5fbedd9f246f90d2f03}{getFramebufferSize}}(uint32\_t\&\ outWidth,\ uint32\_t\&\ outHeight)\ \textcolor{keyword}{const}\ =\ 0;}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \textcolor{keyword}{virtual}\ \doxymbox{\hyperlink{structplatform_1_1_i_window_1_1_native_window_handle}{NativeWindowHandle}}\ \doxymbox{\hyperlink{classplatform_1_1_i_window_a11589c02aa66f6576ba57c8d707f0ac5}{getNativeHandle}}()\ \textcolor{keyword}{const}\ =\ 0;}
+\DoxyCodeLine{00046\ \ \ \ \ \};}
+\DoxyCodeLine{00047\ \}}
+
+\end{DoxyCode}

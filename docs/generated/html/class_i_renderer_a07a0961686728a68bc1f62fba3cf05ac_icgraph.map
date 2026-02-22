@@ -1,0 +1,5 @@
+<map id="IRenderer::beginFrame" name="IRenderer::beginFrame">
+<area shape="rect" id="Node000001" title="Begin rendering a new frame." alt="" coords="215,5,369,31"/>
+<area shape="rect" id="Node000002" href="$class_hello_triangle_game.html#a19e5e908172d94e68b4d23c3ac15a3cd" title="Per&#45;frame update &amp; draw." alt="" coords="5,5,167,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="199,21,167,21,167,16,199,16"/>
+</map>

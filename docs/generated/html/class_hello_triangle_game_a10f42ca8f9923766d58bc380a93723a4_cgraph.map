@@ -1,0 +1,9 @@
+<map id="HelloTriangleGame::initialize" name="HelloTriangleGame::initialize">
+<area shape="rect" id="Node000001" title="Initialize GPU resources for the demo." alt="" coords="5,55,146,96"/>
+<area shape="rect" id="Node000002" href="$class_i_renderer.html#a531660feac5269bf45f64b68c0484396" title="Create a shader drom backend&#45;specific bytecode." alt="" coords="210,5,373,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,54,193,41,223,33,225,38,194,46,147,59"/>
+<area shape="rect" id="Node000003" href="$class_i_renderer.html#a7ab904c4b9b0af30c7a289037535733c" title="Simple rendering pipeline for a coloured triangle." alt="" coords="207,55,376,96"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="146,73,191,73,191,78,146,78"/>
+<area shape="rect" id="Node000004" href="$class_i_renderer.html#ac0677203e6195973cd4c65602ecc5507" title="Create and immutable vertex buffer." alt="" coords="194,120,389,146"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="147,92,194,105,225,113,223,118,193,110,145,97"/>
+</map>

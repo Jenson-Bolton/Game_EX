@@ -1,0 +1,181 @@
+\doxysection{Open\+GLRenderer Class Reference}
+\hypertarget{class_open_g_l_renderer}{}\label{class_open_g_l_renderer}\index{OpenGLRenderer@{OpenGLRenderer}}
+
+
+Inheritance diagram for Open\+GLRenderer:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=172pt]{class_open_g_l_renderer__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Open\+GLRenderer:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=172pt]{class_open_g_l_renderer__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool \doxymbox{\hyperlink{class_open_g_l_renderer_a1c3d51311679db40466261ccc9c4a7db}{initialize}} (const \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{Init\+Info}} \&info, \doxymbox{\hyperlink{classplatform_1_1_i_window}{IWindow}} \&window) override
+\begin{DoxyCompactList}\small\item\em Create the renderer using the given window. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_open_g_l_renderer_aed9fdc397f38e36c2f594438db9ede63}{shutdown}} () override
+\begin{DoxyCompactList}\small\item\em Shutdown and release all GPU resources. \end{DoxyCompactList}\item 
+bool \doxymbox{\hyperlink{class_open_g_l_renderer_adc6194914c92f8c2b5c47f8a2ab2de7a}{begin\+Frame}} () override
+\begin{DoxyCompactList}\small\item\em Begin rendering a new frame. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_open_g_l_renderer_a6406a154c96f5687dcc9fa066b43e491}{end\+Frame}} () override
+\begin{DoxyCompactList}\small\item\em End rendering and present. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} \doxymbox{\hyperlink{class_open_g_l_renderer_a72da7b623510adbabe0fc51d7e54c4da}{create\+Shader}} (\doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{Shader\+Stage}} stage, const std::\+vector$<$ uint8\+\_\+t $>$ \&bytecode) override
+\begin{DoxyCompactList}\small\item\em Create a shader drom backend-\/specific bytecode. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}} \doxymbox{\hyperlink{class_open_g_l_renderer_a861e2e07f243a7c296f3a6e832470fd3}{create\+Triangle\+Pipeline}} (\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} vs, \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}} fs) override
+\begin{DoxyCompactList}\small\item\em Simple rendering pipeline for a coloured triangle. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}} \doxymbox{\hyperlink{class_open_g_l_renderer_ad5c491ccf48b2a70b2ae796ae879864b}{create\+Vertex\+Buffer}} (const \doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{Vertex\+PC}} \texorpdfstring{$\ast$}{*}vertices, uint32\+\_\+t vertex\+Count) override
+\begin{DoxyCompactList}\small\item\em Create and immutable vertex buffer. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{class_open_g_l_renderer_a36f3e25b62ec856e0cf9657e9910e3ea}{draw\+Triangle}} (\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}} pipeline, \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}} vertex\+Buffer, uint32\+\_\+t vertex\+Count) override
+\begin{DoxyCompactList}\small\item\em Record a ddraw of the given vertex buffer using the provide pipeline. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Additional Inherited Members}
+\doxysubsection*{Public Types inherited from \doxymbox{\hyperlink{class_i_renderer}{IRenderer}}}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_i_renderer_a0603f41a720e63a343018a755b33a68d}\label{class_i_renderer_a0603f41a720e63a343018a755b33a68d} 
+enum class \doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{Shader\+Stage}} :\+ uint8\+\_\+t \{ {\bfseries Vertex}
+, {\bfseries Fragment}
+ \}
+\begin{DoxyCompactList}\small\item\em Shader stage enumeration. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{class_open_g_l_renderer_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_open_g_l_renderer_adc6194914c92f8c2b5c47f8a2ab2de7a}\index{OpenGLRenderer@{OpenGLRenderer}!beginFrame@{beginFrame}}
+\index{beginFrame@{beginFrame}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{beginFrame()}{beginFrame()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_adc6194914c92f8c2b5c47f8a2ab2de7a} 
+bool Open\+GLRenderer::\+begin\+Frame (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Begin rendering a new frame. 
+
+\begin{DoxyReturn}{Returns}
+false if the frame cannot be started (e.\+g. minimized). 
+\end{DoxyReturn}
+
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a07a0961686728a68bc1f62fba3cf05ac}{IRenderer}}.
+
+\Hypertarget{class_open_g_l_renderer_a72da7b623510adbabe0fc51d7e54c4da}\index{OpenGLRenderer@{OpenGLRenderer}!createShader@{createShader}}
+\index{createShader@{createShader}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{createShader()}{createShader()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_a72da7b623510adbabe0fc51d7e54c4da} 
+\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{IRenderer::\+\+Shader\+Handle}} Open\+GLRenderer::\+create\+Shader (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{class_i_renderer_a0603f41a720e63a343018a755b33a68d}{Shader\+Stage}}}]{stage}{, }\item[{const std::\+vector$<$ uint8\+\_\+t $>$ \&}]{bytecode}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Create a shader drom backend-\/specific bytecode. 
+
+For Vulkan, this is SPIR-\/V. 
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a531660feac5269bf45f64b68c0484396}{IRenderer}}.
+
+\Hypertarget{class_open_g_l_renderer_a861e2e07f243a7c296f3a6e832470fd3}\index{OpenGLRenderer@{OpenGLRenderer}!createTrianglePipeline@{createTrianglePipeline}}
+\index{createTrianglePipeline@{createTrianglePipeline}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{createTrianglePipeline()}{createTrianglePipeline()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_a861e2e07f243a7c296f3a6e832470fd3} 
+\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{IRenderer::\+\+Pipeline\+Handle}} Open\+GLRenderer::\+create\+Triangle\+Pipeline (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}}}]{vs}{, }\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{Shader\+Handle}}}]{fs}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Simple rendering pipeline for a coloured triangle. 
+
+Keeping the demo small. 
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a7ab904c4b9b0af30c7a289037535733c}{IRenderer}}.
+
+\Hypertarget{class_open_g_l_renderer_ad5c491ccf48b2a70b2ae796ae879864b}\index{OpenGLRenderer@{OpenGLRenderer}!createVertexBuffer@{createVertexBuffer}}
+\index{createVertexBuffer@{createVertexBuffer}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{createVertexBuffer()}{createVertexBuffer()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_ad5c491ccf48b2a70b2ae796ae879864b} 
+\doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{IRenderer::\+\+Buffer\+Handle}} Open\+GLRenderer::\+create\+Vertex\+Buffer (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{struct_i_renderer_1_1_vertex_p_c}{Vertex\+PC}} \texorpdfstring{$\ast$}{*}}]{vertices}{, }\item[{uint32\+\_\+t}]{vertex\+Count}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Create and immutable vertex buffer. 
+
+
+
+Implements \doxymbox{\hyperlink{class_i_renderer_ac0677203e6195973cd4c65602ecc5507}{IRenderer}}.
+
+\Hypertarget{class_open_g_l_renderer_a36f3e25b62ec856e0cf9657e9910e3ea}\index{OpenGLRenderer@{OpenGLRenderer}!drawTriangle@{drawTriangle}}
+\index{drawTriangle@{drawTriangle}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{drawTriangle()}{drawTriangle()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_a36f3e25b62ec856e0cf9657e9910e3ea} 
+void Open\+GLRenderer::\+draw\+Triangle (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{Pipeline\+Handle}}}]{pipeline}{, }\item[{\doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{Buffer\+Handle}}}]{vertex\+Buffer}{, }\item[{uint32\+\_\+t}]{vertex\+Count}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Record a ddraw of the given vertex buffer using the provide pipeline. 
+
+
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a1823d7197747d91b5f5f7e10a0a889d0}{IRenderer}}.
+
+\Hypertarget{class_open_g_l_renderer_a6406a154c96f5687dcc9fa066b43e491}\index{OpenGLRenderer@{OpenGLRenderer}!endFrame@{endFrame}}
+\index{endFrame@{endFrame}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{endFrame()}{endFrame()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_a6406a154c96f5687dcc9fa066b43e491} 
+void Open\+GLRenderer::\+end\+Frame (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+End rendering and present. 
+
+
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a785afbc01e51560d3f1b380938092de0}{IRenderer}}.
+
+\Hypertarget{class_open_g_l_renderer_a1c3d51311679db40466261ccc9c4a7db}\index{OpenGLRenderer@{OpenGLRenderer}!initialize@{initialize}}
+\index{initialize@{initialize}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{initialize()}{initialize()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_a1c3d51311679db40466261ccc9c4a7db} 
+bool Open\+GLRenderer::\+initialize (\begin{DoxyParamCaption}\item[{const \doxymbox{\hyperlink{struct_i_renderer_1_1_init_info}{Init\+Info}} \&}]{info}{, }\item[{\doxymbox{\hyperlink{classplatform_1_1_i_window}{IWindow}} \&}]{window}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Create the renderer using the given window. 
+
+
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a6993652cae0d760918d902a12a926ce1}{IRenderer}}.
+
+Here is the call graph for this function:\+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_open_g_l_renderer_a1c3d51311679db40466261ccc9c4a7db_cgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_open_g_l_renderer_aed9fdc397f38e36c2f594438db9ede63}\index{OpenGLRenderer@{OpenGLRenderer}!shutdown@{shutdown}}
+\index{shutdown@{shutdown}!OpenGLRenderer@{OpenGLRenderer}}
+\doxysubsubsection{\texorpdfstring{shutdown()}{shutdown()}}
+{\footnotesize\ttfamily \label{class_open_g_l_renderer_aed9fdc397f38e36c2f594438db9ede63} 
+void Open\+GLRenderer::\+shutdown (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Shutdown and release all GPU resources. 
+
+
+
+Implements \doxymbox{\hyperlink{class_i_renderer_a47c3a5365f6a92f06f52d4b2b3d1ccba}{IRenderer}}.
+
+
+
+The documentation for this class was generated from the following files:\+\begin{DoxyCompactItemize}
+\item 
+src/\+engine/\+renderer/\+backends/\+opengl/\+Open\+GLRenderer.\+h\item 
+src/\+engine/\+renderer/\+backends/\+opengl/\+Open\+GLRenderer.\+cpp\end{DoxyCompactItemize}

@@ -1,0 +1,31 @@
+\doxysection{Hello\+Triangle\+Game.\+h}
+\hypertarget{_hello_triangle_game_8h_source}{}\label{_hello_triangle_game_8h_source}\index{src/game/HelloTriangleGame.h@{src/game/HelloTriangleGame.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ "{}engine/renderer/IRenderer.h"{}}}
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00011\ \textcolor{keyword}{class\ }\doxymbox{\hyperlink{class_hello_triangle_game}{HelloTriangleGame}}}
+\DoxyCodeLine{00012\ \{}
+\DoxyCodeLine{00013\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordtype}{bool}\ \doxymbox{\hyperlink{class_hello_triangle_game_a10f42ca8f9923766d58bc380a93723a4}{initialize}}(\doxymbox{\hyperlink{class_i_renderer}{IRenderer}}\&\ renderer);}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{class_hello_triangle_game_a19e5e908172d94e68b4d23c3ac15a3cd}{tick}}(\doxymbox{\hyperlink{class_i_renderer}{IRenderer}}\&\ renderer);}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keywordtype}{void}\ \doxymbox{\hyperlink{class_hello_triangle_game_a7b5b966ec1104f8a1011f5ea354ca623}{shutdown}}(\doxymbox{\hyperlink{class_i_renderer}{IRenderer}}\&\ renderer);}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00033\ \ \ \ \ \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{IRenderer::ShaderHandle}}\ \ \ \ \ m\_vs\{\};}
+\DoxyCodeLine{00034\ \ \ \ \ \doxymbox{\hyperlink{struct_i_renderer_1_1_shader_handle}{IRenderer::ShaderHandle}}\ \ \ \ \ m\_fs\{\};}
+\DoxyCodeLine{00035\ \ \ \ \ \doxymbox{\hyperlink{struct_i_renderer_1_1_pipeline_handle}{IRenderer::PipelineHandle}}\ \ \ m\_pipeline\{\};}
+\DoxyCodeLine{00036\ \ \ \ \ \doxymbox{\hyperlink{struct_i_renderer_1_1_buffer_handle}{IRenderer::BufferHandle}}\ \ \ \ \ m\_vbo\{\};}
+\DoxyCodeLine{00037\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_vertexCount\ =\ 0;}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keyword}{static}\ std::vector<uint8\_t>\ readFileBytes(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ path);}
+\DoxyCodeLine{00040\ \};}
+
+\end{DoxyCode}
