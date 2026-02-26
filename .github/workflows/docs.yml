@@ -32,6 +32,15 @@ jobs:
       - name: Bootstrap vcpkg (for CMake configure)
         run: ./external/vcpkg/bootstrap-vcpkg.sh
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            doxygen graphviz \
+            autoconf autoconf-archive automake libtool \
+            pkg-config
+
       - name: Configure (CMake preset)
         run: cmake --preset linux-debug
 
