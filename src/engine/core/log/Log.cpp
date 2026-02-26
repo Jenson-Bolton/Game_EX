@@ -2,7 +2,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-std::shared_ptr<spdlog::logger> Log::s_Logger;
+std::shared_ptr<spdlog::logger> engine::core::Log::logger_;
 
 /**
  * @brief SDL log output callback.
@@ -33,7 +33,7 @@ static void SDLCALL SDLLogCallback(void* userdata, int category, SDL_LogPriority
 	}
 }
 
-void Log::Init()
+void engine::core::Log::init()
 {
 	auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	console_sink->set_pattern("[%T] [%^%l%$] %v");
@@ -43,13 +43,13 @@ void Log::Init()
 
 	std::vector<spdlog::sink_ptr> sinks{ console_sink, file_sink };
 
-	s_Logger = std::make_shared<spdlog::logger>("GAME", sinks.begin(), sinks.end());
-	spdlog::register_logger(s_Logger);
+	logger_ = std::make_shared<spdlog::logger>("GAME", sinks.begin(), sinks.end());
+	spdlog::register_logger(logger_);
 
 #ifdef NDEBUG
-	s_Logger->set_level(spdlog::level::info);
+	logger_->set_level(spdlog::level::info);
 #else
-	s_Logger->set_level(spdlog::level::trace);
+	logger_->set_level(spdlog::level::trace);
 #endif
 
 	// Redirect SDL logging into engine logger
