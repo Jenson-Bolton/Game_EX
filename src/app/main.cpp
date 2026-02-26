@@ -9,7 +9,7 @@ int main(int /*argc*/, char** /*argv*/)
 	// --- Logging ---
 	std::filesystem::create_directories("logs");
 
-	Log::Init();
+	engine::core::Log::init();
 	LOG_INFO("Game starting...");
 	LOG_DEBUG("Debug logging enabled");
 	LOG_TRACE("Trace Logging enabled");
