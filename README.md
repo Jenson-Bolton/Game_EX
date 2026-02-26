@@ -60,10 +60,13 @@ cmake --preset web-debug
 cmake --build --preset web-debug
 ```
 
-## Build Docs
-Replace `<preset>` with your preset
+## Docs
+
+The online docs can be found [here](https://jenson-bolton.github.io/Game_EX/). Alternatively you may want to build the.
+
+To build the docs:
 
 ```
-cmake --preset <preset>
-cmake --build --preset <preset> --target docs
+cmake --preset docs-base
+cmake --build build/docs-base --target docs
 ```
