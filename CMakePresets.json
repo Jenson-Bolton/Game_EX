@@ -22,7 +22,6 @@
     },
     {
       "name": "docs-base",
-      "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
