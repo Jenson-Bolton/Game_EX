@@ -12,6 +12,7 @@ int main(int /*argc*/, char** /*argv*/)
 	Log::Init();
 	LOG_INFO("Game starting...");
 	LOG_DEBUG("Debug logging enabled");
+	LOG_TRACE("Trace Logging enabled");
 
 	platform::window::WindowDesc wd{};
 	wd.width = 1280;

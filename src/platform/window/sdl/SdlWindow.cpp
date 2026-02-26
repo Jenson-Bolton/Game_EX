@@ -83,6 +83,7 @@ namespace platform::window {
                 minimized_ = false;
                 break;
 
+            case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
             case SDL_EVENT_WINDOW_RESIZED:
             case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
                 // SDL3 provides size data on the window event.
