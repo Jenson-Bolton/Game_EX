@@ -1,0 +1,64 @@
+name: Docs
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install doc toolchain (Doxygen + Graphviz + Ninja)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz ninja-build
+
+      # Uses the docs-only preset (GAME_EX_DOCS_ONLY=ON) so we skip vcpkg + engine deps entirely
+      - name: Configure (docs-only preset)
+        run: cmake --preset docs-base
+
+      # No buildPreset exists for docs-base, so build via the preset's binaryDir directly.
+      - name: Build docs target
+        run: cmake --build build/docs-base --target docs
+
+      # Option A: always upload docs as a workflow artifact (useful for PRs)
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html
+          path: docs/generated/html
+
+      # Option B: deploy to GitHub Pages (only on main)
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/generated/html
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

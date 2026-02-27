@@ -5,6 +5,20 @@ project(Game_EX
   LANGUAGES CXX
 )
 
+# ----------------------------
+# Docs-only configuration (CI / GitHub Actions)
+# ----------------------------
+option(GAME_EX_DOCS_ONLY "Configure only the Doxygen docs target (skip all engine/game dependencies)" OFF)
+if (GAME_EX_DOCS_ONLY)
+  find_package(Doxygen REQUIRED)
+  add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM)
+  return()
+endif()
+
 # --- Language settings ---
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
