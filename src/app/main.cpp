@@ -1,6 +1,6 @@
 #include <filesystem>
 
-#include "platform/window/sdl/SdlWindow.h"
+#include "platform/window/create_window.h"
 #include "engine/core/log/Log.h"
 
 
@@ -20,33 +20,29 @@ int main(int /*argc*/, char** /*argv*/)
 	wd.title = "Game_EX";
 	wd.resizable = true;
 
-	platform::window::SdlWindow window;
-	if (!window.create(wd)) {
-		LOG_CRITICAL("Failed to create window!");
-		return 1;
-	}
+	std::unique_ptr<platform::window::IWindow> window = platform::window::create_window(wd);
 
 	// auto renderer = create_renderer(); // std::unique_ptr<IRenderer>
 	// if (!renderer || !renderer->initialize(window)) return 1;
 
-	while (!window.should_close())
+	while (!window->should_close())
 	{
-		window.poll_events();
+		window->poll_events();
 
-		if (window.is_minimized()) {
+		if (window->is_minimized()) {
 			// sleep, no render, etc. save power
 			continue;
 		}
 
-		if (window.was_resized()) {
+		if (window->was_resized()) {
 			int fb_w = 0, fb_h = 0;
-			window.get_framebuffer_size(fb_w, fb_h);
+			window->get_framebuffer_size(fb_w, fb_h);
 
 			if (fb_w > 0 && fb_h > 0) {
 				// renderer->resize((uint32_t)fb_w, (uint32_t)fb_h);
 			}
 
-			window.clear_resized_flag();
+			window->clear_resized_flag();
 
 			// renderer->begin_frame();
 			// update_game(dt);
@@ -55,7 +51,7 @@ int main(int /*argc*/, char** /*argv*/)
 	}
 
 	// renderer->shutdown();
-	window.destroy();
+	window->destroy();
 	return 0;
 
 }

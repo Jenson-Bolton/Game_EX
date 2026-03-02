@@ -37,15 +37,9 @@ namespace platform::window
 
         NativeHandle get_native_handle() const override;
 
-        /**
-         * @brief Whether a resize was observed since the last poll.
-         */
-        bool was_resized() const { return resized_; }
+        bool was_resized() const override { return resized_; }
 
-        /**
-         * @brief Clear the resize flag.
-         */
-        void clear_resized_flag() { resized_ = false; }
+        void clear_resized_flag() override { resized_ = false; }
 
     private:
         SDL_Window* window_ = nullptr;

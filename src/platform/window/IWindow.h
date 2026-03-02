@@ -123,5 +123,16 @@ namespace platform::window
          * @return A NativeHandle struct describing the underlying window handle(s).
          */
         virtual NativeHandle get_native_handle() const = 0;
+
+        /**
+         * @brief Whether a resize was observed since the last poll.
+         * @return A bool if the window was resized
+         */
+        virtual bool was_resized() const = 0;
+
+        /**
+         * @brief Clear the resize flag.
+         */
+        virtual void clear_resized_flag() = 0;
     };
 } 
