@@ -19,13 +19,13 @@ game_ex_world_compiler ------------> GameEX::WorldFormat
 
 `GameEX::WorldFormat` is deliberately tiny. It establishes a compiler/runtime boundary without pretending that an on-disk schema has been designed. The logical header must not be serialized by copying its C++ memory representation.
 
-The next engine shape is expected to add independent targets for jobs, startup, resources, serialization, ECS, world runtime, input, audio, render abstraction, RHI, and a Vulkan backend. Those are directions, not permission to scaffold unused directories or placeholder abstractions.
+The next engine shape is expected to add independent targets for jobs, startup, resources, serialization, ECS, world runtime, input, audio, a shared Render API/RHI, and separate OpenGL and Vulkan backends. Those are directions, not permission to scaffold unused directories or placeholder abstractions.
 
 ## Dependency rules
 
 - Engine modules never depend on game, editor, or Czech Republic domain code.
-- Game and editor never include SDL, Vulkan, or native operating-system headers.
-- Vulkan dependencies will be private to a Vulkan RHI target.
+- Game and editor never include SDL, OpenGL, Vulkan, or native operating-system headers.
+- OpenGL and Vulkan dependencies remain private to their respective renderer backends and platform/presentation integration targets.
 - World compiler implementation is offline; only WorldFormat is a runtime dependency.
 - Platform exposes low-level capabilities. Higher layers own assets, saves, and domain workflows.
 - Ownership is explicit and lifetimes are deterministic; service-locator singletons are prohibited.

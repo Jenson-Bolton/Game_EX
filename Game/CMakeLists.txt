@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/GameEXVersion.cmake")
+
 project(
     GameEXGame
-    VERSION 0.1.0
+    VERSION "${GAMEEX_VERSION}"
     DESCRIPTION "Game_EX game and world-editor applications"
     LANGUAGES CXX
 )
@@ -56,6 +58,7 @@ target_link_libraries(
         GameEX::PlatformSDL
         GameEX::WorldFormat
 )
+gameex_apply_version(gameex_game_app)
 gameex_game_enable_warnings(gameex_game_app)
 
 add_executable(game_ex src/app/main.cpp)

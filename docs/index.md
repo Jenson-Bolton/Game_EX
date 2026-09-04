@@ -27,12 +27,19 @@ This directory contains human-authored project documentation. Generated code-ref
 
 ## Development
 
+- [Working agreement and release workflow](development/README.md)
 - [Building](development/building.md)
 - [Repository layout](development/repository-layout.md)
 - [Coding standards](development/coding-standards.md)
 - [Testing](development/testing.md)
 - [Adding a module](development/adding-a-module.md)
 - [Doxygen](development/doxygen.md)
+
+## History and reports
+
+- [Version history](history/README.md)
+- [Technical report template](history/report-template.md)
+- [Project changelog](../CHANGELOG.md)
 
 ## Decisions
 

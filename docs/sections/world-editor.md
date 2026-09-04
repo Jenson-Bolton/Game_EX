@@ -17,4 +17,5 @@ The world editor will author, inspect, validate, and preview world content while
 - undo/redo command boundaries;
 - how the editor invokes or observes offline world compilation;
 - live game preview in-process, another window, or another process;
-- validation/error presentation and source provenance.
+- validation/error presentation and source provenance;
+- runtime OpenGL/Vulkan selection, diagnostics, and the required degree of feature parity.

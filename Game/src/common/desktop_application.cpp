@@ -102,7 +102,7 @@ int run_desktop_application(
 
         auto platform = platform::create_sdl_platform({
             .application_name = specification.application_name,
-            .application_version = "0.1.0",
+            .application_version = GAMEEX_VERSION_STRING,
             .application_identifier = specification.application_identifier,
         });
 

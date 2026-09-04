@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/GameEXVersion.cmake")
+
 project(
     GameEXWorldCompiler
-    VERSION 0.1.0
+    VERSION "${GAMEEX_VERSION}"
     DESCRIPTION "World format and offline compilation tools for Game_EX"
     LANGUAGES CXX
 )
@@ -38,6 +40,7 @@ add_executable(
 )
 target_compile_features(game_ex_world_compiler PRIVATE cxx_std_20)
 target_link_libraries(game_ex_world_compiler PRIVATE GameEX::WorldFormat)
+gameex_apply_version(game_ex_world_compiler)
 gameex_world_enable_warnings(game_ex_world_compiler)
 
 if(BUILD_TESTING)

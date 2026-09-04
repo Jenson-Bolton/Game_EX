@@ -6,7 +6,7 @@
 
 **ECS** — Entity Component System; one possible representation for appropriate runtime objects, not the universal world database.
 
-**RHI** — Render Hardware Interface, the engine boundary above a concrete backend such as Vulkan.
+**RHI** — Render Hardware Interface, the engine boundary above concrete backends such as OpenGL and Vulkan.
 
 **SDL3** — Cross-platform library used here only for the first platform/window backend.
 

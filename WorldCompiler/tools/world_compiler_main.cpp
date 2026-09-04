@@ -16,7 +16,8 @@
  */
 int main() {
     std::cout
-        << "Game_EX World Compiler foundation (world format "
+        << "Game_EX World Compiler " << GAMEEX_VERSION_STRING
+        << " foundation (world format "
         << game_ex::world_format::current_major_version << '.'
         << game_ex::world_format::current_minor_version << ")\n"
         << "No world compilation pipeline is configured yet.\n";

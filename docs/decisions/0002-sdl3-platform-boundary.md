@@ -13,6 +13,8 @@ Use pinned SDL3 `3.4.14` to implement only platform initialisation, native windo
 
 SDL's rendering API is not the Game_EX renderer. A future Vulkan dependency must remain private to a distinct Vulkan RHI target.
 
+The later cross-technology requirement adds an OpenGL backend without changing this SDL boundary. See [ADR 0004](0004-dual-renderer-backends.md).
+
 ## Consequences
 
 The initial windows are cross-platform in structure and do not contaminate game code with SDL types. The first configure requires fetching the pinned source release unless a system SDL3 package is explicitly selected. Windows remain blank until an RHI milestone is specified.

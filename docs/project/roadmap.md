@@ -12,7 +12,7 @@ Specify and implement logging, configuration, crash reporting, the bootstrap seq
 
 ## M2 — Rendering foundation
 
-Specify the RHI boundary, establish the Vulkan development environment, create a swapchain, render a diagnostic frame, and define render-world extraction without leaking Vulkan into game code.
+Specify the shared Render API/RHI boundary and backend-selection policy. Establish the OpenGL and Vulkan development environments, render the same diagnostic scene through an OpenGL context and a Vulkan swapchain, and define render-world extraction without leaking either graphics API into game or editor code.
 
 ## M3 — Editor shell
 

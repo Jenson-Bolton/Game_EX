@@ -19,4 +19,4 @@ Engine contains reusable infrastructure that has no knowledge of the Game_EX sim
 
 ## Planned, not implemented
 
-Core diagnostics/configuration, jobs, startup, resources, serialization, ECS, input, audio, world streaming primitives, render abstraction, RHI, Vulkan, profiling, and headless support all require their own boundaries and tests.
+Core diagnostics/configuration, jobs, startup, resources, serialization, ECS, input, audio, world streaming primitives, the shared Render API/RHI, OpenGL and Vulkan backends, profiling, and headless support all require their own boundaries and tests.

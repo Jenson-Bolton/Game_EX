@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/GameEXVersion.cmake")
+
 project(
     GameEXWorkspace
-    VERSION 0.1.0
+    VERSION "${GAMEEX_VERSION}"
     DESCRIPTION "Workspace for the Game_EX engine, world compiler, and game"
     LANGUAGES CXX
 )
