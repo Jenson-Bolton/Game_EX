@@ -1,36 +1,20 @@
-build/
-out/
-vcpkg_installed/
-.vscode/
-third_party/python-win/
-third_party/emsdk/upstream/
-third_party/emsdk/node/
-third_party/emsdk/python/
-third_party/emsdk/java/
-third_party/emsdk/zips/
+# CMake build trees
+/build/
+/**/build/
+/out/
 
-# Visual Studio
-.vs/
-*.vcxproj
-*.vcxproj.user
-*.vcxproj.filters
-*.sln
+# Generated documentation
+/**/docs/doxygen/html/
+/**/docs/doxygen/xml/
 
-# CMake
-build/
-out/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
+# Visual Studio and editor state
+/.vs/
+/.vscode/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
 
-# vcpkg build artifacts
-vcpkg_installed/
-
-# OS
+# Platform artefacts
 .DS_Store
 Thumbs.db
-
-# Misc.
-structure.txt
-docs/generated/

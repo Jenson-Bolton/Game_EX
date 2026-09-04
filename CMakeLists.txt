@@ -1,193 +1,46 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.25)
 
-project(Game_EX
-  VERSION 0.0.0
-  LANGUAGES CXX
+project(
+    GameEXWorkspace
+    VERSION 0.1.0
+    DESCRIPTION "Workspace for the Game_EX engine, world compiler, and game"
+    LANGUAGES CXX
 )
 
-# ----------------------------
-# Docs-only configuration (CI / GitHub Actions)
-# ----------------------------
-option(GAME_EX_DOCS_ONLY "Configure only the Doxygen docs target (skip all engine/game dependencies)" OFF)
-if (GAME_EX_DOCS_ONLY)
-  find_package(Doxygen REQUIRED)
-  add_custom_target(docs
-    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Generating API documentation with Doxygen"
-    VERBATIM)
-  return()
-endif()
+include(CTest)
 
-# --- Language settings ---
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(GAMEEX_BUILD_DOCUMENTATION "Create the Doxygen documentation target" ON)
+option(GAMEEX_ENABLE_GUI_SMOKE_TESTS "Register tests that briefly open the desktop windows" ON)
+
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
 
-# ----------------------------
-# Dependencies
-# ----------------------------
+add_subdirectory(Engine)
+add_subdirectory(WorldCompiler)
+add_subdirectory(Game)
 
-# --- spdlog ---
-find_package(spdlog CONFIG REQUIRED)
+if(GAMEEX_BUILD_DOCUMENTATION)
+    find_package(Doxygen 1.9 QUIET)
 
-# --- SDL3 dependency ---
-if (EMSCRIPTEN)
-  # Build SDL3 from source for web
-  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-  set(SDL_STATIC ON  CACHE BOOL "" FORCE)
-  set(SDL_TEST OFF   CACHE BOOL "" FORCE)
-  set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+    if(Doxygen_FOUND)
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+            @ONLY
+        )
 
-  add_subdirectory(third_party/SDL EXCLUDE_FROM_ALL)
-
-  set(SDL3_TARGET SDL3::SDL3-static)
-else()
-  # Native platforms: use vcpkg-provided SDL3
-  find_package(SDL3 CONFIG REQUIRED)
-  set(SDL3_TARGET SDL3::SDL3)
-endif()
-
-# --- GLM dependency ---
-if (EMSCRIPTEN)
-  add_library(glm_headers INTERFACE)
-  target_include_directories(glm_headers INTERFACE
-    ${CMAKE_SOURCE_DIR}/third_party/glm
-  )
-  set(GLM_TARGET glm_headers)
-else()
-  find_package(glm CONFIG REQUIRED)
-  set(GLM_TARGET glm::glm)
-endif()
-
-# --- Vulkan dependency ---
-if (NOT EMSCRIPTEN)
-    find_package(Vulkan REQUIRED)
-endif()
-
-# ----------------------------
-# Source layout (targets)
-# ----------------------------
-
-# Helper: glob cpp-like sources
-function(glob_cpp out_var base_dir)
-  file(GLOB_RECURSE _tmp CONFIGURE_DEPENDS
-    "${base_dir}/*.c"
-    "${base_dir}/*.cc"
-    "${base_dir}/*.cpp"
-    "${base_dir}/*.cxx"
-  )
-  set(${out_var} "${_tmp}" PARENT_SCOPE)
-endfunction()
-
-set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-
-glob_cpp(ENGINE_SOURCES   "${SRC_DIR}/engine")
-glob_cpp(PLATFORM_SOURCES "${SRC_DIR}/platform")
-glob_cpp(GAME_SOURCES     "${SRC_DIR}/game")
-glob_cpp(APP_SOURCES      "${SRC_DIR}/app")
-
-# Transitional support: if you still have .cpp files directly under src/
-# (e.g. src/main.cpp), we’ll compile them into the executable too.
-file(GLOB SRC_ROOT_SOURCES CONFIGURE_DEPENDS
-  "${SRC_DIR}/*.c"
-  "${SRC_DIR}/*.cc"
-  "${SRC_DIR}/*.cpp"
-  "${SRC_DIR}/*.cxx"
-)
-
-# Avoid compiling the same file twice if someone later moves things around weirdly
-set(ALL_LIB_SOURCES ${ENGINE_SOURCES} ${PLATFORM_SOURCES} ${GAME_SOURCES})
-set(APP_ALL_SOURCES ${APP_SOURCES} ${SRC_ROOT_SOURCES})
-foreach(_f IN LISTS ALL_LIB_SOURCES)
-  list(REMOVE_ITEM APP_ALL_SOURCES "${_f}")
-endforeach()
-
-# ----------------------------
-# Libraries
-# ----------------------------
-
-add_library(engine STATIC ${ENGINE_SOURCES})
-target_include_directories(engine PUBLIC "${SRC_DIR}")
-if (NOT EMSCRIPTEN)
-    target_link_libraries(engine
-        PUBLIC
-            ${GLM_TARGET}
-            spdlog::spdlog
-            Vulkan::Vulkan
-    )
-    target_compile_definitions(engine PUBLIC
-        $<$<CONFIG:Debug>:VK_ENABLE_VALIDATION_LAYERS>
-    )
-else()
-    target_link_libraries(engine
-        PUBLIC
-            ${GLM_TARGET}
-            spdlog::spdlog
-    )
-endif()
-
-
-add_library(platform STATIC ${PLATFORM_SOURCES})
-target_include_directories(platform PUBLIC "${SRC_DIR}")
-target_link_libraries(platform PUBLIC ${SDL3_TARGET})
-
-add_library(game STATIC ${GAME_SOURCES})
-target_include_directories(game PUBLIC "${SRC_DIR}")
-target_link_libraries(game PUBLIC engine)
-
-# ----------------------------
-# Executable
-# ----------------------------
-
-if (APP_ALL_SOURCES STREQUAL "")
-  message(FATAL_ERROR
-    "No app sources found. Add src/app/main.cpp (recommended) or keep a .cpp in src/ root temporarily."
-  )
-endif()
-
-add_executable(Game_EX ${APP_ALL_SOURCES})
-target_include_directories(Game_EX PRIVATE "${SRC_DIR}")
-target_link_libraries(Game_EX PRIVATE engine platform game)
-
-# ----------------------------
-# Warnings
-# ----------------------------
-
-if (MSVC)
-  target_compile_options(engine   PRIVATE /W4)
-  target_compile_options(platform PRIVATE /W4)
-  target_compile_options(game     PRIVATE /W4)
-  target_compile_options(Game_EX  PRIVATE /W4)
-else()
-  target_compile_options(engine   PRIVATE -Wall -Wextra -Wpedantic)
-  target_compile_options(platform PRIVATE -Wall -Wextra -Wpedantic)
-  target_compile_options(game     PRIVATE -Wall -Wextra -Wpedantic)
-  target_compile_options(Game_EX  PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
-# ----------------------------
-# Platform properties
-# ----------------------------
-
-if (APPLE)
-  set_target_properties(Game_EX PROPERTIES
-    MACOSX_BUNDLE TRUE
-  )
-endif()
-
-# ----------------------------
-# Doxygen
-# ----------------------------
-find_package(Doxygen)
-
-if(DOXYGEN_FOUND)
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
-    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-
-    add_custom_target(docs
-        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_IN}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM)
+        add_custom_target(
+            docs
+            COMMAND "${CMAKE_COMMAND}" -E make_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen"
+            COMMAND "${DOXYGEN_EXECUTABLE}" "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "Generating Game_EX API documentation"
+            VERBATIM
+        )
+    else()
+        message(WARNING "Doxygen was not found; the docs target will not be available.")
+    endif()
 endif()

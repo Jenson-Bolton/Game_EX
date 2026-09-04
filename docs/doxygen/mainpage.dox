@@ -1,0 +1,17 @@
+/**
+ * @mainpage Game_EX C++ API
+ *
+ * Game_EX is a modular C++20 engine, offline world compiler/runtime format, and
+ * transport/city/land-use game foundation.
+ *
+ * The current API consists of:
+ *
+ * - @ref core for the minimal application lifetime;
+ * - @ref platform for platform-neutral boot capabilities;
+ * - @ref platform_sdl for the SDL3 backend factory;
+ * - @ref world_format for the compiler/runtime compatibility boundary;
+ * - @ref game_app for the game and world-editor composition helper.
+ *
+ * Human-authored vision, scope, architecture, section, development, and decision
+ * records live in the repository's `docs/` directory. Start with `docs/index.md`.
+ */

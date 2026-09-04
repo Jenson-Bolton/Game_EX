@@ -1,0 +1,24 @@
+/**
+ * @defgroup core Engine core
+ * @brief Ownership and lifecycle primitives that do not depend on a backend.
+ */
+
+/**
+ * @defgroup platform Platform API
+ * @brief Low-level, platform-neutral process and window capabilities.
+ */
+
+/**
+ * @defgroup platform_sdl SDL3 platform backend
+ * @brief SDL3 implementation selected by desktop composition roots.
+ */
+
+/**
+ * @defgroup world_format Runtime world format
+ * @brief Versioned contract shared by compiler, game, and editor.
+ */
+
+/**
+ * @defgroup game_app Game application composition
+ * @brief Shared launcher surface for the game and world editor.
+ */
