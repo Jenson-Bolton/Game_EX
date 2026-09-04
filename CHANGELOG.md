@@ -6,6 +6,27 @@ All notable Game_EX changes are recorded here. Detailed implementation evidence,
 
 No changes recorded.
 
+## [0.1.2] - 2026-09-05
+
+### Added
+
+- `GameEX::Startup`, an ordinarily owned subsystem graph with full pre-start validation, deterministic serial topological order, exact reverse shutdown, and partial-start rollback.
+- Unit coverage for invalid registrations, missing dependencies, cycles, stable ordering, cleanup continuation, rollback, lifecycle misuse, and destructor cleanup.
+- An application integration that controls native-window visibility through the startup lifecycle.
+- A Czech Republic data-source strategy covering source roles, precedence, EPSG:5514 precision, inspect-before-combine staging, the Bystřice proof, and required provenance.
+- Architecture decisions for the serial startup contract, renderer baselines/selection/parity, and the WorldCompiler repository split gate.
+
+### Changed
+
+- Engine and lifecycle documentation now distinguish the implemented serial graph from the later controlled-parallel job-system slice.
+
+### Limitations
+
+- Startup is deliberately serial; worker scheduling and thread-affinity policy are deferred to the next independently verified version.
+- The data strategy records acceptance rules but imports no external world data in this version.
+
+See the [`v0.1.2` technical report](docs/history/reports/v0.1.2.md).
+
 ## [0.1.1] - 2026-09-05
 
 ### Added

@@ -9,17 +9,17 @@ game_ex_world_editor ----------+--> GameEX::GameApp
                                       |       |
                                       |       +--> GameEX::WorldFormat
                                       |
-                                      +--> GameEX::Core
+                                      +--> GameEX::Core --> GameEX::Startup
                                       +--> GameEX::PlatformSDL --> SDL3
 
 game_ex_world_compiler ------------> GameEX::WorldFormat
 ```
 
-`GameEX::Core` sees only the abstract `Platform` and `Window` contracts. `GameEX::PlatformSDL` implements those contracts and is the only current target that includes SDL headers. The game and editor composition roots select SDL3, then transfer ownership into `Application`.
+`GameEX::Core` sees only the abstract `Platform` and `Window` contracts. Its owned `GameEX::Startup` graph validates and runs ordinary subsystem objects without exposing global lookup. `GameEX::PlatformSDL` implements the platform contracts and is the only current target that includes SDL headers. The game and editor composition roots select SDL3, then transfer ownership into `Application`.
 
 `GameEX::WorldFormat` is deliberately tiny. It establishes a compiler/runtime boundary without pretending that an on-disk schema has been designed. The logical header must not be serialized by copying its C++ memory representation.
 
-The next engine shape is expected to add independent targets for jobs, startup, resources, serialization, ECS, world runtime, input, audio, a shared Render API/RHI, and separate OpenGL and Vulkan backends. Those are directions, not permission to scaffold unused directories or placeholder abstractions.
+The next engine shape is expected to add independent targets for jobs, resources, serialization, ECS, world runtime, input, audio, a shared Render API/RHI, and separate OpenGL and Vulkan backends. Those are directions, not permission to scaffold unused directories or placeholder abstractions.
 
 ## Dependency rules
 

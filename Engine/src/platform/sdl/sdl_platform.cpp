@@ -47,6 +47,13 @@ public:
         }
     }
 
+    /** @copydoc Window::hide */
+    void hide() override {
+        if (!SDL_HideWindow(window_)) {
+            throw sdl_error("SDL could not hide the window");
+        }
+    }
+
 private:
     /** Native SDL window owned by this adapter. */
     SDL_Window* window_;

@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap is directional. Only the foundation milestone is accepted scope; later milestones require specifications and architecture decisions before implementation.
+This roadmap is directional. M0 and the validated serial-startup slice of M1 are implemented; later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
 
 ## M0 — Foundation
 
@@ -20,7 +20,7 @@ Select the UI approach and establish panels, commands, selection, undo/redo, doc
 
 ## M4 — World format/compiler proof
 
-Choose one small region and one narrow data path. Define coordinate/reference rules and a versioned package format before implementing broader Czech Republic ingestion.
+Use the [Bystřice proof and source hierarchy](data-source-strategy.md) to introduce independently inspectable layers through one narrow data path. Define the package format and remaining coordinate rules before broader Czech Republic ingestion, and resolve the [WorldCompiler repository split gate](../decisions/0005-world-compiler-repository-split-gate.md) before adding geospatial or ML acquisition dependencies.
 
 ## M5 — Simulation vertical slice
 

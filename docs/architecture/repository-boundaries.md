@@ -24,4 +24,6 @@ Before splitting, specify:
 - coordinated CI and release rules;
 - ownership of shared documentation and issue tracking.
 
-No nested Git repository should be created inside this workspace until that decision is accepted.
+No nested Git repository should be created inside this workspace as a shortcut. Any future multi-repository composition must follow the accepted split/migration and workspace decisions.
+
+[ADR 0005](../decisions/0005-world-compiler-repository-split-gate.md) keeps portable WorldCompiler work in this repository but requires a new split decision before specialised geospatial, Python, acquisition, or machine-learning dependencies enter the supported build.

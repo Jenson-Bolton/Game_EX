@@ -6,6 +6,7 @@
  *
  * The current API consists of:
  *
+ * - @ref startup for deterministic subsystem lifecycle orchestration;
  * - @ref core for the minimal application lifetime;
  * - @ref platform for platform-neutral boot capabilities;
  * - @ref platform_sdl for the SDL3 backend factory;

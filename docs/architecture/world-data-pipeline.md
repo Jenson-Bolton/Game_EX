@@ -21,3 +21,5 @@ TESSERA supplies learned annual surface/land characteristics, not terrain elevat
 The compiler will eventually handle coordinate-reference conversion, source provenance, tiling, validation, reproducibility, change over time, confidence, and package versioning. None of those policies is safe to infer from the current window milestone.
 
 The first proof should use one small, named region and a minimal set of layers before any whole-Czech-Republic build. Dataset licences, dates, coordinate systems, accuracy, and transformations must be recorded alongside produced assets.
+
+The detailed source roles, conflict precedence, EPSG:5514 precision policy, Bystřice proof extent, and provenance fields are defined in the [Czech Republic data-source strategy](../project/data-source-strategy.md).

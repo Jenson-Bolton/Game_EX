@@ -7,6 +7,7 @@ This directory contains human-authored project documentation. Generated code-ref
 - [Vision](project/vision.md)
 - [New orientation](project/new-orientation.md)
 - [Current scope and specification gate](project/scope.md)
+- [Czech Republic data-source strategy](project/data-source-strategy.md)
 - [Roadmap](project/roadmap.md)
 - [Glossary](project/glossary.md)
 

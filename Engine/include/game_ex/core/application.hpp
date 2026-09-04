@@ -6,6 +6,7 @@
 #pragma once
 
 #include "game_ex/platform/platform.hpp"
+#include "game_ex/startup/startup_graph.hpp"
 
 #include <chrono>
 #include <memory>
@@ -33,8 +34,8 @@ struct RunConfiguration final {
  *
  * Application is the first composition boundary, not a service locator. The
  * executable selects a concrete Platform implementation and transfers ownership
- * to this object. A future startup graph will be hosted above this minimal boot
- * sequence once its specification has been agreed.
+ * to this object. Its ordinarily owned startup graph controls reversible runtime
+ * activation without exposing global subsystem lookup.
  *
  * @ingroup core
  */
@@ -53,7 +54,7 @@ public:
         const platform::WindowSpecification& window,
         RunConfiguration run = {});
 
-    /** Releases the window before releasing its owning platform runtime. */
+    /** Shuts down active subsystems before releasing the window and platform. */
     ~Application();
 
     /** Applications have unique ownership of platform resources. */
@@ -63,9 +64,10 @@ public:
     Application& operator=(const Application&) = delete;
 
     /**
-     * @brief Shows the window and processes events until shutdown is requested.
+     * @brief Starts subsystems and processes events until shutdown is requested.
      * @return Zero after an orderly shutdown.
-     * @throws std::runtime_error if the platform cannot show the native window.
+     * @throws std::logic_error if this single-use application has already run.
+     * @throws Any startup or shutdown exception from an application subsystem.
      */
     int run();
 
@@ -75,6 +77,9 @@ private:
 
     /** The current milestone's sole top-level application window. */
     std::unique_ptr<platform::Window> window_;
+
+    /** Owned deterministic lifecycle for application runtime subsystems. */
+    startup::StartupGraph startup_graph_;
 
     /** Main-loop configuration copied at construction. */
     RunConfiguration run_configuration_;

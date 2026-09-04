@@ -9,6 +9,7 @@ project(
     LANGUAGES CXX
 )
 
+include(CTest)
 include(FetchContent)
 
 option(GAMEEX_ENGINE_USE_SYSTEM_SDL3 "Use an installed SDL3 package instead of the pinned source release" OFF)
@@ -42,10 +43,19 @@ else()
     set(GAMEEX_SDL_TARGET SDL3::SDL3-static)
 endif()
 
-add_library(
-    gameex_core STATIC
-    src/core/application.cpp
+add_library(gameex_startup STATIC src/startup/startup_graph.cpp)
+add_library(GameEX::Startup ALIAS gameex_startup)
+
+target_compile_features(gameex_startup PUBLIC cxx_std_20)
+target_include_directories(
+    gameex_startup
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
+gameex_engine_enable_warnings(gameex_startup)
+
+add_library(gameex_core STATIC src/core/application.cpp)
 add_library(GameEX::Core ALIAS gameex_core)
 
 target_compile_features(gameex_core PUBLIC cxx_std_20)
@@ -55,6 +65,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(gameex_core PUBLIC GameEX::Startup)
 gameex_engine_enable_warnings(gameex_core)
 
 add_library(
@@ -72,3 +83,13 @@ target_include_directories(
 )
 target_link_libraries(gameex_platform_sdl PRIVATE ${GAMEEX_SDL_TARGET})
 gameex_engine_enable_warnings(gameex_platform_sdl)
+
+if(BUILD_TESTING)
+    add_executable(gameex_startup_tests tests/startup_graph_tests.cpp)
+    target_compile_features(gameex_startup_tests PRIVATE cxx_std_20)
+    target_link_libraries(gameex_startup_tests PRIVATE GameEX::Startup)
+    gameex_engine_enable_warnings(gameex_startup_tests)
+
+    add_test(NAME engine.startup_graph COMMAND gameex_startup_tests)
+    set_tests_properties(engine.startup_graph PROPERTIES LABELS "unit")
+endif()

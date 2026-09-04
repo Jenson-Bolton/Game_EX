@@ -9,6 +9,7 @@ OUTPUT_LANGUAGE        = English
 
 INPUT                  = "@CMAKE_SOURCE_DIR@/Engine/include" \
                          "@CMAKE_SOURCE_DIR@/Engine/src" \
+                         "@CMAKE_SOURCE_DIR@/Engine/tests" \
                          "@CMAKE_SOURCE_DIR@/WorldCompiler/include" \
                          "@CMAKE_SOURCE_DIR@/WorldCompiler/src" \
                          "@CMAKE_SOURCE_DIR@/WorldCompiler/tools" \

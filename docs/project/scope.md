@@ -6,6 +6,7 @@ The current milestone includes:
 
 - one root workspace build and three independently configurable CMake projects;
 - a C++20 `GameEX::Core` application lifetime;
+- a validated, deterministic serial `GameEX::Startup` subsystem lifecycle;
 - a platform-neutral window boundary and SDL3 implementation;
 - separate game and world-editor executables that open, pump events, and close cleanly;
 - a minimal `GameEX::WorldFormat` compatibility boundary;
@@ -15,17 +16,21 @@ The current milestone includes:
 - strict Doxygen generation for all current C++ code;
 - linkage to the existing Game_EX GitHub history.
 
-## Version 0.1.1 decisions
+## Current accepted decisions
 
-The project remains in one repository during early development. The editor remains one native application window, with any future panels kept inside it until a UI workflow proves that another window is necessary. The startup graph and job system precede renderer implementation. The renderer will expose one shared Render API/RHI implemented by both OpenGL and Vulkan backends, as recorded in [ADR 0004](../decisions/0004-dual-renderer-backends.md).
+The project remains in one repository through dependency-light WorldCompiler work, with a mandatory split decision before supported geospatial, acquisition, Python, or ML dependencies are added. The editor remains one native application window, with future panels kept inside it until a UI workflow proves that another window is necessary. The implemented serial startup graph precedes the bounded job system and controlled parallel startup.
+
+The renderer will expose one shared Render API/RHI implemented by OpenGL 4.6 Core and Vulkan 1.3 backends, as recorded in [ADR 0004](../decisions/0004-dual-renderer-backends.md). Once renderer composition is implemented, applications will accept `--renderer=opengl|vulkan|auto`; `auto` will try Vulkan before OpenGL, while automated tests will select a backend explicitly. Backends may arrive in separately reported patch releases, but `v0.2.0` requires parity for its claimed diagnostic/editor capability. The planned toolchain uses a pinned GLAD input and the system LunarG Vulkan SDK.
+
+The [Czech Republic data-source strategy](data-source-strategy.md) defines source authority, conflict handling, EPSG:5514 canonical coordinates, tile-local rendering precision, provenance, and inspect-before-combine staging. The first proof will use the Bystřice region, DMR 5G terrain, separately visible authoritative/supplemental vectors, Dynamic World probabilities, and an offline 2024 TESSERA experiment. Machine-learned semantics will never displace applicable authoritative geometry.
 
 ## Explicitly out of scope
 
-Version `0.1.1` does not implement:
+Version `0.1.2` does not implement:
 
 - the shared Render API, OpenGL context/rendering path, or Vulkan instance/device/swapchain path;
 - an immediate-mode or retained-mode editor UI toolkit;
-- the startup DAG or job system;
+- the job system or controlled parallel startup;
 - ECS, resources, audio, input mapping, serialization, or virtual filesystems;
 - terrain, TESSERA, DMR, RÚIAN, ZABAGED, Dynamic World, or other ingestion;
 - a serialized `.exworld` layout;
@@ -35,12 +40,10 @@ Version `0.1.1` does not implement:
 
 ## Next specification gate
 
-Development can implement the agreed startup and job slices. Before renderer or real-data implementation commits to durable interfaces or dependencies, the owner still needs to confirm:
+Development can implement the agreed job, portable compiler, renderer, and separate-layer viewer slices. The remaining gates are narrower:
 
-1. the minimum OpenGL version/profile and Vulkan API baseline;
-2. explicit backend selection, default/fallback behaviour, and when feature parity is required;
-3. whether the Vulkan SDK and future geospatial dependencies should be installed system-wide, managed by a package manager, or built as pinned project dependencies;
-4. whether the compact Bystřice pod Hostýnem dataset may be committed to normal Git, whether the large source LAS belongs in Git LFS, and which files must remain external;
-5. the TESSERA product/year and whether its first editor output is a PCA diagnostic, semantic classification, material weights, or another defined product;
-6. source precedence, confidence, time/epoch, overlap, and no-data rules before any layers are combined;
-7. the UI toolkit only when the full-window inspection canvas grows into docked editor panels.
+1. resolve the WorldCompiler repository split immediately before adding supported GDAL/PROJ, Python, network-acquisition, or ML dependencies;
+2. verify the exact licence, edition, acquisition record, checksum, coordinate metadata, and redistribution status of every real source before committing or compiling it;
+3. keep the large source LAS outside ordinary Git and decide between an external immutable cache, data release, or Git LFS only if a reproducible source build requires repository-managed storage;
+4. specify the UI toolkit only when the full-window inspection canvas grows into docked editor panels;
+5. require a separate reconciliation decision and evidence report before independently inspected layers are combined.

@@ -58,6 +58,12 @@ public:
      */
     virtual void show() = 0;
 
+    /**
+     * @brief Makes the native window hidden.
+     * @throws std::runtime_error if the operating system rejects the request.
+     */
+    virtual void hide() = 0;
+
 protected:
     /** Allows construction only by concrete platform implementations. */
     Window() = default;

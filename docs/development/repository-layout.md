@@ -4,6 +4,7 @@
 Engine/
 |-- include/game_ex/      Public headers
 |-- src/                  Private implementations
+|-- tests/                Dependency-light engine unit tests
 `-- CMakeLists.txt
 
 WorldCompiler/
