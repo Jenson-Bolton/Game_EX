@@ -9,7 +9,7 @@ game_ex_world_editor ----------+--> GameEX::GameApp
                                       |       |
                                       |       +--> GameEX::WorldFormat
                                       |
-                                      +--> GameEX::Core --> GameEX::Startup
+                                      +--> GameEX::Core --> GameEX::Startup --> GameEX::Jobs
                                       +--> GameEX::PlatformSDL --> SDL3
 
 game_ex_world_compiler ------------> GameEX::WorldFormat
@@ -19,7 +19,7 @@ game_ex_world_compiler ------------> GameEX::WorldFormat
 
 `GameEX::WorldFormat` is deliberately tiny. It establishes a compiler/runtime boundary without pretending that an on-disk schema has been designed. The logical header must not be serialized by copying its C++ memory representation.
 
-The next engine shape is expected to add independent targets for jobs, resources, serialization, ECS, world runtime, input, audio, a shared Render API/RHI, and separate OpenGL and Vulkan backends. Those are directions, not permission to scaffold unused directories or placeholder abstractions.
+`GameEX::Jobs` is an ordinarily owned synchronous batch service injected into controlled parallel startup; it is not a service locator or a general asynchronous system. The next engine shape is expected to add resources, serialization, ECS, world runtime, input, audio, a shared Render API/RHI, and separate OpenGL and Vulkan backends. Those are directions, not claims that the targets already exist or permission to scaffold unused modules.
 
 ## Dependency rules
 

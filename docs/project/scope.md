@@ -7,6 +7,7 @@ The current milestone includes:
 - one root workspace build and three independently configurable CMake projects;
 - a C++20 `GameEX::Core` application lifetime;
 - a validated, deterministic serial `GameEX::Startup` subsystem lifecycle;
+- a bounded `GameEX::Jobs` worker pool and deterministic controlled-parallel startup path;
 - a platform-neutral window boundary and SDL3 implementation;
 - separate game and world-editor executables that open, pump events, and close cleanly;
 - a minimal `GameEX::WorldFormat` compatibility boundary;
@@ -18,7 +19,7 @@ The current milestone includes:
 
 ## Current accepted decisions
 
-The project remains in one repository through dependency-light WorldCompiler work, with a mandatory split decision before supported geospatial, acquisition, Python, or ML dependencies are added. The editor remains one native application window, with future panels kept inside it until a UI workflow proves that another window is necessary. The implemented serial startup graph precedes the bounded job system and controlled parallel startup.
+The project remains in one repository through dependency-light WorldCompiler work, with a mandatory split decision before supported geospatial, acquisition, Python, or ML dependencies are added. The editor remains one native application window, with future panels kept inside it until a UI workflow proves that another window is necessary. The serial startup graph and [bounded controlled-parallel path](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) are implemented; renderer and window work remain main-thread-affine.
 
 The renderer will expose one shared Render API/RHI implemented by OpenGL 4.6 Core and Vulkan 1.3 backends, as recorded in [ADR 0004](../decisions/0004-dual-renderer-backends.md). Once renderer composition is implemented, applications will accept `--renderer=opengl|vulkan|auto`; `auto` will try Vulkan before OpenGL, while automated tests will select a backend explicitly. Backends may arrive in separately reported patch releases, but `v0.2.0` requires parity for its claimed diagnostic/editor capability. The planned toolchain uses a pinned GLAD input and the system LunarG Vulkan SDK.
 
@@ -26,11 +27,11 @@ The [Czech Republic data-source strategy](data-source-strategy.md) defines sourc
 
 ## Explicitly out of scope
 
-Version `0.1.2` does not implement:
+Version `0.1.3` does not implement:
 
 - the shared Render API, OpenGL context/rendering path, or Vulkan instance/device/swapchain path;
 - an immediate-mode or retained-mode editor UI toolkit;
-- the job system or controlled parallel startup;
+- a general asynchronous/frame job graph, priorities, cancellation, work stealing, or dynamic worker resizing;
 - ECS, resources, audio, input mapping, serialization, or virtual filesystems;
 - terrain, TESSERA, DMR, RÚIAN, ZABAGED, Dynamic World, or other ingestion;
 - a serialized `.exworld` layout;

@@ -11,6 +11,7 @@ project(
 
 include(CTest)
 include(FetchContent)
+find_package(Threads REQUIRED)
 
 option(GAMEEX_ENGINE_USE_SYSTEM_SDL3 "Use an installed SDL3 package instead of the pinned source release" OFF)
 
@@ -43,6 +44,19 @@ else()
     set(GAMEEX_SDL_TARGET SDL3::SDL3-static)
 endif()
 
+add_library(gameex_jobs STATIC src/jobs/job_system.cpp)
+add_library(GameEX::Jobs ALIAS gameex_jobs)
+
+target_compile_features(gameex_jobs PUBLIC cxx_std_20)
+target_include_directories(
+    gameex_jobs
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(gameex_jobs PUBLIC Threads::Threads)
+gameex_engine_enable_warnings(gameex_jobs)
+
 add_library(gameex_startup STATIC src/startup/startup_graph.cpp)
 add_library(GameEX::Startup ALIAS gameex_startup)
 
@@ -53,6 +67,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(gameex_startup PUBLIC GameEX::Jobs)
 gameex_engine_enable_warnings(gameex_startup)
 
 add_library(gameex_core STATIC src/core/application.cpp)
@@ -85,11 +100,37 @@ target_link_libraries(gameex_platform_sdl PRIVATE ${GAMEEX_SDL_TARGET})
 gameex_engine_enable_warnings(gameex_platform_sdl)
 
 if(BUILD_TESTING)
+    add_executable(gameex_jobs_tests tests/job_system_tests.cpp)
+    target_compile_features(gameex_jobs_tests PRIVATE cxx_std_20)
+    target_link_libraries(gameex_jobs_tests PRIVATE GameEX::Jobs)
+    gameex_engine_enable_warnings(gameex_jobs_tests)
+
     add_executable(gameex_startup_tests tests/startup_graph_tests.cpp)
     target_compile_features(gameex_startup_tests PRIVATE cxx_std_20)
     target_link_libraries(gameex_startup_tests PRIVATE GameEX::Startup)
     gameex_engine_enable_warnings(gameex_startup_tests)
 
+    add_test(NAME engine.job_system COMMAND gameex_jobs_tests)
+    set_tests_properties(engine.job_system PROPERTIES LABELS "unit")
+
+    add_test(
+        NAME engine.job_system_wrong_thread_destruction
+        COMMAND gameex_jobs_tests --death-destroy-outside-creator
+    )
+    set_tests_properties(
+        engine.job_system_wrong_thread_destruction
+        PROPERTIES LABELS "unit;death" TIMEOUT 10 WILL_FAIL TRUE
+    )
+
     add_test(NAME engine.startup_graph COMMAND gameex_startup_tests)
     set_tests_properties(engine.startup_graph PROPERTIES LABELS "unit")
+
+    add_test(
+        NAME engine.startup_graph_wrong_thread_destruction
+        COMMAND gameex_startup_tests --death-destroy-outside-creator
+    )
+    set_tests_properties(
+        engine.startup_graph_wrong_thread_destruction
+        PROPERTIES LABELS "unit;death" TIMEOUT 10 WILL_FAIL TRUE
+    )
 endif()

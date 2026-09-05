@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "game_ex/jobs/job_system.hpp"
 #include "game_ex/platform/platform.hpp"
 #include "game_ex/startup/startup_graph.hpp"
 
@@ -47,6 +48,7 @@ public:
      * @param window Requested window properties.
      * @param run Main-loop timing and optional smoke-test lifetime.
      * @throws std::invalid_argument if platform is null or run is invalid.
+     * @throws std::system_error if the bootstrap worker pool cannot create a thread.
      * @throws std::runtime_error if the platform cannot create the window.
      */
     Application(
@@ -77,6 +79,9 @@ private:
 
     /** The current milestone's sole top-level application window. */
     std::unique_ptr<platform::Window> window_;
+
+    /** Fixed bootstrap worker pool that outlives parallel startup and shutdown. */
+    jobs::JobSystem job_system_;
 
     /** Owned deterministic lifecycle for application runtime subsystems. */
     startup::StartupGraph startup_graph_;

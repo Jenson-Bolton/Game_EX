@@ -9,6 +9,7 @@ Each published Game_EX version has a report that connects its aim, implementatio
 | `v0.1.0` | 2026-09-04 | Foundation baseline | [Report](reports/v0.1.0.md) | Retrospective [`v0.1.0` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.0) on commit `2ac180d2064c1a7e57e4631259df2a3884b57998` | Three-project C++20 workspace, SDL3 game/editor windows, logical world header, tests, and strict Doxygen. |
 | `v0.1.1` | 2026-09-05 | Released | [Report](reports/v0.1.1.md) | Annotated [`v0.1.1` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.1) | Working agreement, versioned evidence history, and central version propagation. |
 | `v0.1.2` | 2026-09-05 | Released | [Report](reports/v0.1.2.md) | Annotated [`v0.1.2` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.2) | Validated deterministic serial startup, rollback, application integration, and recorded real-data/compiler boundaries. |
+| `v0.1.3` | 2026-09-05 | Released | [Report](reports/v0.1.3.md) | Annotated [`v0.1.3` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.3) | Bounded worker batches and deterministic controlled-parallel startup with explicit affinity and failure barriers. |
 | `v0.2.0` | Planned | Planned roll-up | Report created with the release | — | First integrated world-data/compiler/editor capability, summarising its independently verified patch slices. |
 
 ## Bootstrap exception

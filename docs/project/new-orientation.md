@@ -19,10 +19,10 @@ The important corrections to the original design are:
 - Platform code exposes low-level services rather than game concepts such as save games.
 - Subsystems are ordinary owned objects, not singleton “managers.”
 - Startup dependencies form a validated directed acyclic graph scheduled in topological order; they are not implemented as depth-first singleton construction.
-- Bootstrap is initially serial because the job system must exist before parallel startup can use it.
-- Main-thread affinity remains a requirement for controlled parallel startup; exact reverse-order shutdown is already part of the serial graph.
+- The bounded job system is serial bootstrap infrastructure because parallel startup cannot schedule creation of its own executor.
+- Controlled parallel startup enforces main-thread affinity and serial reverse-logical cleanup after every worker batch settles.
 - Determinism and headless execution are explicit design properties.
 
-The current source implements the small application/platform window foundation and the validated serial startup graph. It does not pre-empt the pending specifications for worker scheduling and affinity, the renderer, simulation, or editor UI.
+The current source implements the small application/platform window foundation, bounded synchronous jobs, and validated serial/controlled-parallel startup paths. It does not pre-empt the pending specifications for any broader frame scheduler, the renderer, simulation, or editor UI.
 
 The spelling “Czech Republic” is used throughout this project in accordance with the project owner's preference.

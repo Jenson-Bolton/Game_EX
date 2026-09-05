@@ -6,6 +6,26 @@ All notable Game_EX changes are recorded here. Detailed implementation evidence,
 
 No changes recorded.
 
+## [0.1.3] - 2026-09-05
+
+### Added
+
+- `GameEX::Jobs`, an ordinarily owned fixed worker pool with a 1–32 bound, conservative hardware recommendation, synchronous indexed batches, deterministic exception results, and explicit shutdown.
+- Controlled parallel startup with safe-by-default main-thread affinity, bounded lexical worker admission, dependency barriers, deterministic primary failure, and reverse logical rollback.
+- Unit tests covering actual overlap, exact-once worker execution, invalid and nested/concurrent use, reordered failures, affinity, dependency barriers, stopped admission, and owner-thread cleanup.
+- ADR 0008 documenting the bounded job and controlled parallel-startup contract.
+
+### Changed
+
+- `Application` now owns its worker pool as serial bootstrap infrastructure and uses the controlled startup path; native window visibility remains main-thread-affine.
+
+### Limitations
+
+- The job system is intentionally a synchronous startup primitive, not a general frame scheduler; it has no priorities, cancellation, work stealing, futures, nested submission, or dynamic resizing.
+- No rendering, world compilation, or external dataset is added in this version.
+
+See the [`v0.1.3` technical report](docs/history/reports/v0.1.3.md).
+
 ## [0.1.2] - 2026-09-05
 
 ### Added

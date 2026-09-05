@@ -62,13 +62,14 @@ Application::Application(
     startup_graph_.add({
         "platform.window.visibility",
         {},
-        std::make_unique<WindowVisibilitySubsystem>(*window_)});
+        std::make_unique<WindowVisibilitySubsystem>(*window_),
+        startup::StartupAffinity::main_thread});
 }
 
 Application::~Application() = default;
 
 int Application::run() {
-    startup_graph_.start();
+    startup_graph_.start(job_system_);
 
     const auto started_at = std::chrono::steady_clock::now();
 

@@ -6,6 +6,7 @@
  *
  * The current API consists of:
  *
+ * - @ref jobs for bounded synchronous worker batches;
  * - @ref startup for deterministic subsystem lifecycle orchestration;
  * - @ref core for the minimal application lifetime;
  * - @ref platform for platform-neutral boot capabilities;

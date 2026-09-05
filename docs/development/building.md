@@ -37,3 +37,7 @@ cmake --build --preset docs
 ```
 
 Use `ctest --test-dir build/vs2022 -C Debug -L unit` to run only non-GUI unit tests. GUI smoke tests briefly display each real desktop window.
+
+## JobSystem configuration
+
+[ADR 0008](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) adds no build prerequisite or CMake option. Worker count is runtime configuration, independent of CMake's build parallelism. The current application uses the conservative hardware-based recommendation; tests pass an explicit count. No public command-line worker-count option is exposed yet.

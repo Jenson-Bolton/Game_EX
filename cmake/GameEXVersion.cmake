@@ -4,7 +4,7 @@
 # project() declaration. Increment this value once for each reported release.
 include_guard(DIRECTORY)
 
-set(GAMEEX_VERSION "0.1.2")
+set(GAMEEX_VERSION "0.1.3")
 
 function(gameex_apply_version target_name)
     if(NOT TARGET "${target_name}")

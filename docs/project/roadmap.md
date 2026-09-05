@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap is directional. M0 and the validated serial-startup slice of M1 are implemented; later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
+This roadmap is directional. M0 plus the validated serial startup, bounded jobs, and controlled-parallel startup slices of M1 are implemented; later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
 
 ## M0 — Foundation
 
@@ -8,7 +8,7 @@ Buildable three-project workspace, game window, world-editor window, world-forma
 
 ## M1 — Lifecycle and diagnostics
 
-Specify and implement logging, configuration, crash reporting, the bootstrap sequence, job primitives, startup DAG validation/scheduling, affinity, profiling, and reverse shutdown.
+The validated serial startup graph, [bounded JobSystem, and controlled parallel-startup contract](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) are implemented. Logging, configuration, crash reporting, wider diagnostics, profiling, and any broader frame-job model remain later work.
 
 ## M2 — Rendering foundation
 

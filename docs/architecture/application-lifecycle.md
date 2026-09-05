@@ -1,6 +1,6 @@
 # Application lifecycle
 
-The current lifecycle is intentionally serial and small:
+The lifecycle retains a deterministic serial path and adds a bounded controlled-parallel path; the current application uses the latter:
 
 ```text
 executable composition root
@@ -9,11 +9,11 @@ executable composition root
 create SDL3 Platform
         |
         v
-create hidden Window and owned StartupGraph
+create hidden Window, bounded JobSystem, and owned StartupGraph
         |
         v
 Application::run
-  | validate entire graph
+  | validate job pool and entire graph
   | start window-visibility subsystem
   | pump events
   | idle briefly
@@ -28,10 +28,14 @@ destroy Window, then Platform/SDL3
 
 The graph is single-use and protects its lifecycle states. Validation errors leave it configurable because no work has started; runtime start or shutdown failures are terminal. Destruction attempts non-throwing cleanup for a graph still running, while an explicit `shutdown()` reports the first cleanup exception after attempting every remaining cleanup.
 
-Application currently registers window visibility as its first real subsystem. Member declaration order ensures that the startup graph finishes cleanup before the native window is destroyed, and that the window is destroyed before its SDL runtime. Platform creation, event pumping, showing, hiding, and destruction occur on the same main thread.
+Application currently registers window visibility as its first real subsystem and marks it main-thread-affine. The application owns a conservative fixed worker pool before its startup graph, so graph cleanup completes before workers join, the native window is then destroyed, and SDL shuts down last. Platform creation, event pumping, showing, hiding, and destruction occur on the same main thread.
 
 The current `automatic_exit_after` setting is an automation hook for smoke tests, not a gameplay timer or public command-line design.
 
-## Next lifecycle slice, pending specification
+## Controlled parallel startup
 
-The next slice introduces an ordinarily owned job system and controlled parallel startup while preserving the proven validation, deterministic serial path, reverse cleanup, and failure semantics. Main-thread-affine work such as window and renderer setup must remain on the application thread. Worker-ready nodes may run concurrently only after their dependencies complete; failure must stop new admissions and wait for in-flight work before deterministic rollback.
+[ADR 0008](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) specifies the implemented ordinarily owned job system with 1–32 workers and synchronous indexed batches. The serial graph path remains available and full pre-validation is unchanged. A lexical ready set governs admission. If its first node is main-thread-affine, that one node runs on the owner and readiness is recomputed. Otherwise the maximal lexical-leading worker-eligible prefix, capped by worker count, runs as one batch and reaches a barrier before readiness is recomputed.
+
+Physical worker completion is intentionally non-deterministic. Logical indices control result placement, primary-failure selection, lifecycle commit, and reverse rollback. After a failure, every admitted job is awaited, later work is not admitted, and cleanup runs serially on the application thread.
+
+Both the pool and graph must be destroyed on their creating application thread. The implementation ends the process immediately with failure before cleanup if ownership is transferred to another thread for destruction, preventing main-affine shutdown from running on a foreign thread or a worker from joining itself.

@@ -5,12 +5,17 @@
 
 #include "game_ex/startup/startup_graph.hpp"
 
+#include <array>
+#include <atomic>
+#include <barrier>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <latch>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -18,6 +23,7 @@ namespace {
 
 using game_ex::startup::LifecycleState;
 using game_ex::startup::StartupGraph;
+using game_ex::startup::StartupAffinity;
 using game_ex::startup::Subsystem;
 using game_ex::startup::SubsystemRegistration;
 
@@ -71,6 +77,40 @@ private:
 
     /** Injected shutdown failure flag. */
     bool fail_shutdown_;
+};
+
+/**
+ * @brief Test subsystem whose lifecycle is supplied by callbacks.
+ */
+class CallbackSubsystem final : public Subsystem {
+public:
+    /**
+     * @brief Stores test lifecycle callbacks.
+     * @param start_callback Operation used for start().
+     * @param shutdown_callback Operation used for shutdown().
+     */
+    CallbackSubsystem(
+        std::function<void()> start_callback,
+        std::function<void()> shutdown_callback)
+        : start_callback_(std::move(start_callback)),
+          shutdown_callback_(std::move(shutdown_callback)) {}
+
+    /** @copydoc Subsystem::start */
+    void start() override {
+        start_callback_();
+    }
+
+    /** @copydoc Subsystem::shutdown */
+    void shutdown() override {
+        shutdown_callback_();
+    }
+
+private:
+    /** Injected startup behavior. */
+    std::function<void()> start_callback_;
+
+    /** Injected shutdown behavior. */
+    std::function<void()> shutdown_callback_;
 };
 
 /**
@@ -129,6 +169,29 @@ SubsystemRegistration registration(
             events,
             fail_start,
             fail_shutdown)};
+}
+
+/**
+ * @brief Creates an affinity-aware callback registration for parallel tests.
+ * @param id Stable graph identifier.
+ * @param dependencies Required subsystem IDs.
+ * @param affinity Startup execution constraint.
+ * @param start_callback Operation used for start().
+ * @param shutdown_callback Operation used for shutdown().
+ * @return Owned callback subsystem registration.
+ */
+SubsystemRegistration callback_registration(
+    std::string id,
+    std::vector<std::string> dependencies,
+    const StartupAffinity affinity,
+    std::function<void()> start_callback,
+    std::function<void()> shutdown_callback) {
+    return {
+        std::move(id),
+        std::move(dependencies),
+        std::make_unique<CallbackSubsystem>(
+            std::move(start_callback), std::move(shutdown_callback)),
+        affinity};
 }
 
 /**
@@ -378,13 +441,246 @@ bool test_lifecycle_protection_and_raii() {
     return passed;
 }
 
+/**
+ * @brief Verifies worker overlap, dependency barriers, affinity, and rollback order.
+ * @return True when successful controlled-parallel startup follows its logical order.
+ */
+bool test_parallel_affinity_and_dependencies() {
+    game_ex::jobs::JobSystem jobs({2});
+    const std::thread::id owner = std::this_thread::get_id();
+    std::array<std::thread::id, 2> worker_threads{};
+    std::array<std::atomic<bool>, 2> worker_complete{};
+    std::barrier worker_rendezvous(2);
+    bool dependent_saw_complete_workers = false;
+    bool dependent_ran_on_owner = false;
+    bool shutdowns_ran_on_owner = true;
+    std::vector<std::string> shutdown_order;
+    StartupGraph graph;
+
+    graph.add(callback_registration(
+        "charlie.main",
+        {"alpha.worker", "bravo.worker"},
+        StartupAffinity::main_thread,
+        [&] {
+            dependent_saw_complete_workers = worker_complete[0].load()
+                && worker_complete[1].load();
+            dependent_ran_on_owner = std::this_thread::get_id() == owner;
+        },
+        [&] {
+            shutdowns_ran_on_owner &= std::this_thread::get_id() == owner;
+            shutdown_order.emplace_back("charlie.main");
+        }));
+    graph.add(callback_registration(
+        "bravo.worker",
+        {},
+        StartupAffinity::worker_eligible,
+        [&] {
+            worker_threads[1] = std::this_thread::get_id();
+            worker_rendezvous.arrive_and_wait();
+            worker_complete[1] = true;
+        },
+        [&] {
+            shutdowns_ran_on_owner &= std::this_thread::get_id() == owner;
+            shutdown_order.emplace_back("bravo.worker");
+        }));
+    graph.add(callback_registration(
+        "alpha.worker",
+        {},
+        StartupAffinity::worker_eligible,
+        [&] {
+            worker_threads[0] = std::this_thread::get_id();
+            worker_rendezvous.arrive_and_wait();
+            worker_complete[0] = true;
+        },
+        [&] {
+            shutdowns_ran_on_owner &= std::this_thread::get_id() == owner;
+            shutdown_order.emplace_back("alpha.worker");
+        }));
+
+    graph.start(jobs);
+    bool passed = check(
+        worker_threads[0] != owner && worker_threads[1] != owner,
+        "worker-eligible startup runs outside the application thread");
+    passed &= check(
+        worker_threads[0] != worker_threads[1],
+        "independent worker-eligible subsystems overlap on two workers");
+    passed &= check(
+        dependent_saw_complete_workers,
+        "dependent starts only after the complete prerequisite batch commits");
+    passed &= check(dependent_ran_on_owner, "main-affine dependent runs on graph owner");
+
+    graph.shutdown();
+    passed &= check(shutdowns_ran_on_owner, "all shutdown callbacks run on graph owner");
+    passed &= check(
+        shutdown_order
+            == std::vector<std::string>{
+                "charlie.main", "bravo.worker", "alpha.worker"},
+        "shutdown reverses deterministic logical admission order");
+
+    std::thread::id serial_thread;
+    StartupGraph serial_graph;
+    serial_graph.add(callback_registration(
+        "worker-eligible",
+        {},
+        StartupAffinity::worker_eligible,
+        [&serial_thread] { serial_thread = std::this_thread::get_id(); },
+        [] {}));
+    serial_graph.start();
+    serial_graph.shutdown();
+    passed &= check(
+        serial_thread == owner,
+        "serial compatibility path runs worker-eligible nodes on caller");
+    return passed;
+}
+
+/**
+ * @brief Verifies a failed worker batch settles before deterministic rollback.
+ * @return True when lexical failure selection prevents all later admission.
+ */
+bool test_parallel_failure_stops_admission() {
+    game_ex::jobs::JobSystem jobs({2});
+    const std::thread::id owner = std::this_thread::get_id();
+    std::barrier failure_rendezvous(2);
+    std::latch later_failure_released(1);
+    std::atomic<int> attempted{0};
+    std::atomic<int> failure_sequence{0};
+    std::array<int, 2> failure_order{-1, -1};
+    std::atomic<bool> charlie_started{false};
+    bool shutdowns_ran_on_owner = true;
+    std::vector<std::string> shutdown_order;
+    StartupGraph graph;
+
+    graph.add(callback_registration(
+        "charlie.worker",
+        {},
+        StartupAffinity::worker_eligible,
+        [&charlie_started] { charlie_started = true; },
+        [&shutdown_order] { shutdown_order.emplace_back("charlie.worker"); }));
+    graph.add(callback_registration(
+        "bravo.worker",
+        {},
+        StartupAffinity::worker_eligible,
+        [&] {
+            ++attempted;
+            failure_rendezvous.arrive_and_wait();
+            failure_order[1] = failure_sequence.fetch_add(1);
+            later_failure_released.count_down();
+            throw std::runtime_error("bravo failure");
+        },
+        [&] {
+            shutdowns_ran_on_owner &= std::this_thread::get_id() == owner;
+            shutdown_order.emplace_back("bravo.worker");
+        }));
+    graph.add(callback_registration(
+        "alpha.worker",
+        {},
+        StartupAffinity::worker_eligible,
+        [&] {
+            ++attempted;
+            failure_rendezvous.arrive_and_wait();
+            later_failure_released.wait();
+            failure_order[0] = failure_sequence.fetch_add(1);
+            throw std::runtime_error("alpha failure");
+        },
+        [&] {
+            shutdowns_ran_on_owner &= std::this_thread::get_id() == owner;
+            shutdown_order.emplace_back("alpha.worker");
+        }));
+
+    bool caught_lexical_failure = false;
+    try {
+        graph.start(jobs);
+    } catch (const std::runtime_error& error) {
+        caught_lexical_failure = std::string(error.what()) == "alpha failure";
+    }
+
+    bool passed = check(attempted.load() == 2, "every admitted failing-batch node settles");
+    passed &= check(
+        failure_order[1] == 0 && failure_order[0] == 1,
+        "controlled failure points invert lexical admission order");
+    passed &= check(caught_lexical_failure, "lexically first admitted failure is propagated");
+    passed &= check(!charlie_started.load(), "failure prevents admission of the next bounded batch");
+    passed &= check(shutdowns_ran_on_owner, "parallel rollback runs on graph owner");
+    passed &= check(
+        shutdown_order == std::vector<std::string>{"bravo.worker", "alpha.worker"},
+        "parallel rollback reverses logical admission, not controlled failure order");
+    passed &= check(graph.state() == LifecycleState::failed, "parallel failure is terminal");
+    return passed;
+}
+
+/**
+ * @brief Verifies graph control and job-system availability before any start call.
+ * @return True when wrong-thread and stopped-pool attempts leave configuration intact.
+ */
+bool test_parallel_control_protection() {
+    bool passed = true;
+    std::atomic<bool> foreign_start_rejected{false};
+    bool started = false;
+    StartupGraph graph;
+    graph.add(callback_registration(
+        "main",
+        {},
+        StartupAffinity::main_thread,
+        [&started] { started = true; },
+        [] {}));
+
+    std::thread foreign([&] {
+        try {
+            graph.start();
+        } catch (const std::logic_error&) {
+            foreign_start_rejected = true;
+        }
+    });
+    foreign.join();
+    passed &= check(foreign_start_rejected.load(), "graph start outside creator thread is rejected");
+    passed &= check(!started, "wrong-thread graph start invokes no subsystem");
+    passed &= check(
+        graph.state() == LifecycleState::configuring,
+        "wrong-thread rejection preserves configurable state");
+
+    game_ex::jobs::JobSystem stopped_jobs({1});
+    stopped_jobs.shutdown();
+    passed &= check(
+        throws_exception<std::logic_error>([&graph, &stopped_jobs] {
+            graph.start(stopped_jobs);
+        }),
+        "parallel startup rejects a stopped job system before main-affine work");
+    passed &= check(!started, "stopped job system invokes no subsystem");
+    passed &= check(
+        graph.state() == LifecycleState::configuring,
+        "unavailable job system leaves graph configurable");
+
+    graph.start();
+    graph.shutdown();
+    passed &= check(started, "graph remains usable after pre-start control rejection");
+    return passed;
+}
+
 } // namespace
 
 /**
  * @brief Runs all startup graph unit tests.
+ * @param argument_count Number of process command-line arguments.
+ * @param arguments Process command-line arguments, including death-test mode.
  * @return EXIT_SUCCESS when every lifecycle invariant holds.
  */
-int main() {
+int main(const int argument_count, char* arguments[]) {
+    if (argument_count == 2
+        && std::string(arguments[1]) == "--death-destroy-outside-creator") {
+        std::vector<std::string> events;
+        auto graph = std::make_unique<StartupGraph>();
+        graph->add(registration("main-affine", {}, events));
+        graph->start();
+        std::thread foreign_destroyer([owned_graph = std::move(graph)]() mutable {
+            owned_graph.reset();
+        });
+        foreign_destroyer.join();
+        return EXIT_SUCCESS;
+    }
+    if (argument_count != 1) {
+        return EXIT_FAILURE;
+    }
+
     bool passed = true;
     passed &= test_registration_validation();
     passed &= test_graph_validation_before_start();
@@ -392,5 +688,8 @@ int main() {
     passed &= test_startup_rollback();
     passed &= test_shutdown_failure_continues_cleanup();
     passed &= test_lifecycle_protection_and_raii();
+    passed &= test_parallel_affinity_and_dependencies();
+    passed &= test_parallel_failure_stops_admission();
+    passed &= test_parallel_control_protection();
     return passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }

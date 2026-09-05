@@ -6,6 +6,8 @@ CTest is the common test runner. Tests are labelled by purpose:
 - `gui`: requires a desktop windowing environment;
 - `smoke`: proves a top-level composition path starts and exits successfully.
 
-Current tests verify startup-graph validation/order/rollback/lifecycle behaviour, world-header compatibility, and timed launches of both SDL3 applications. A window smoke test succeeds only if SDL initialisation, native window creation, startup-controlled showing, event pumping, reverse shutdown/hiding, and orderly destruction all complete.
+Current tests verify bounded job batches, concurrency and lifecycle protection; serial and controlled-parallel startup validation/order/affinity/barriers/rollback; world-header compatibility; and timed launches of both SDL3 applications. A window smoke test succeeds only if SDL initialisation, native window creation, job-pool/bootstrap creation, startup-controlled showing, event pumping, reverse shutdown/hiding, worker joining, and orderly destruction all complete.
+
+JobSystem tests use explicit worker counts and controlled gates rather than elapsed time as evidence. They cover invalid bounds, true two-worker overlap, exact-once/off-owner execution, input-indexed failures despite an inverted controlled failure-point order, nested/concurrent/foreign rejection, waiting for in-flight work, rejection of later startup admission, main-thread affinity, barrier dependencies, and serial reverse-logical rollback.
 
 Future domain tests should favour fixed inputs, explicit seeds, state invariants, replay checksums, and geographically separated validation data where machine-learning or semantic classifiers are evaluated. Long-running whole-world tests must not replace small reproducible vertical slices.
