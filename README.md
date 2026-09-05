@@ -2,7 +2,7 @@
 
 Game_EX is a new C++20 foundation for a large-world transport, city, and land-use simulation. It is intentionally split into a reusable engine, an offline world compiler/runtime world format, and the game applications.
 
-The `v0.1.0` foundation is deliberately small: the workspace builds, the game and world editor each open an SDL3 desktop window, the offline compiler has a safe placeholder entry point, and both project documentation and generated API documentation have defined homes. No renderer, simulation, editor workflow, or production world-data pipeline was included in that baseline. The accepted renderer direction is one shared Render API with required [OpenGL and Vulkan backends](docs/decisions/0004-dual-renderer-backends.md).
+The current `v0.1.4` foundation builds on the original window milestone with deterministic startup/jobs infrastructure and the first portable world-data contract. The game and world editor each open a real SDL3 desktop window; the dependency-free WorldCompiler validates a strict staged terrain manifest, writes a deterministic `.gexworld` package, and reopens it through the same `GameEX::WorldFormat` reader intended for both applications. The committed fixture is synthetic: no external dataset or source adapter is accepted yet, and neither application visualises the package in this version. The accepted renderer direction remains one shared Render API with required [OpenGL and Vulkan backends](docs/decisions/0004-dual-renderer-backends.md).
 
 ## Repository layout
 
@@ -35,6 +35,16 @@ Run the applications:
 .\build\vs2022\bin\Debug\game_ex_world_editor.exe
 ```
 
+Exercise the portable compiler with its project-authored fixture:
+
+```powershell
+.\build\vs2022\bin\Debug\game_ex_world_compiler.exe validate --manifest .\WorldCompiler\tests\fixtures\minimal\manifest.gexstage
+.\build\vs2022\bin\Debug\game_ex_world_compiler.exe compile --manifest .\WorldCompiler\tests\fixtures\minimal\manifest.gexstage --output .\build\vs2022\minimal.gexworld
+.\build\vs2022\bin\Debug\game_ex_world_compiler.exe inspect --package .\build\vs2022\minimal.gexworld
+```
+
+The compiler refuses to overwrite an existing package. See the [WorldCompiler guide](WorldCompiler/README.md) for the manifest contract, stable exit codes, standalone build, and complete command reference.
+
 Generate checked API documentation:
 
 ```powershell
@@ -57,8 +67,11 @@ Read the [working agreement](docs/development/README.md), [contribution guide](C
 - [Project vision](docs/project/vision.md)
 - [Current scope and specification gate](docs/project/scope.md)
 - [Architecture overview](docs/architecture/overview.md)
+- [World package format](docs/architecture/world-package-format.md)
+- [WorldCompiler guide](WorldCompiler/README.md)
 - [Building and testing](docs/development/building.md)
 - [Working agreement and release workflow](docs/development/README.md)
 - [Doxygen policy](docs/development/doxygen.md)
 - [Architecture decisions](docs/decisions/README.md)
 - [Version history and technical reports](docs/history/README.md)
+- [Legacy Bystřice data audit](docs/history/legacy-bystrice-data-audit.md)

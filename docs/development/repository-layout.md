@@ -8,10 +8,13 @@ Engine/
 `-- CMakeLists.txt
 
 WorldCompiler/
-|-- include/game_ex/world_format/
-|-- src/world_format/
-|-- tools/
-|-- tests/
+|-- include/game_ex/world_format/       Runtime model and reader
+|-- src/world_format/                   Runtime reader internals
+|-- src/compiler/include/game_ex/world_compiler/
+|                                       Offline-only compiler API
+|-- src/compiler/                       Parser, encoder, and publisher
+|-- tools/                              CLI composition root
+|-- tests/                              Format/compiler/CLI tests and synthetic fixture
 `-- CMakeLists.txt
 
 Game/
@@ -27,6 +30,7 @@ docs/
 |-- sections/             Responsibility/status of each programme
 |-- development/          Build, code, testing, and contribution guidance
 |-- decisions/            Architecture decision records
+|-- history/              Version reports and forensic project records
 `-- doxygen/              Generated-reference entry/group declarations
 ```
 

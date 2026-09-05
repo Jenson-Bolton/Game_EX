@@ -49,7 +49,7 @@ public:
           fail_start_(fail_start),
           fail_shutdown_(fail_shutdown) {}
 
-    /** @copydoc Subsystem::start */
+    /** @copydoc game_ex::startup::Subsystem::start */
     void start() override {
         events_.push_back(name_ + ".start");
         if (fail_start_) {
@@ -57,7 +57,7 @@ public:
         }
     }
 
-    /** @copydoc Subsystem::shutdown */
+    /** @copydoc game_ex::startup::Subsystem::shutdown */
     void shutdown() override {
         events_.push_back(name_ + ".shutdown");
         if (fail_shutdown_) {
@@ -95,12 +95,12 @@ public:
         : start_callback_(std::move(start_callback)),
           shutdown_callback_(std::move(shutdown_callback)) {}
 
-    /** @copydoc Subsystem::start */
+    /** @copydoc game_ex::startup::Subsystem::start */
     void start() override {
         start_callback_();
     }
 
-    /** @copydoc Subsystem::shutdown */
+    /** @copydoc game_ex::startup::Subsystem::shutdown */
     void shutdown() override {
         shutdown_callback_();
     }

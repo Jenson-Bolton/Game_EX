@@ -1,0 +1,3 @@
+# Keep byte-bound synthetic staging fixtures deterministic on every platform.
+tests/fixtures/** text eol=lf
+*.gexstage text eol=lf

@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap is directional. M0 plus the validated serial startup, bounded jobs, and controlled-parallel startup slices of M1 are implemented; later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
+This roadmap is directional. M0, the validated serial/controlled-parallel parts of M1, and the dependency-free package/codec portion of M4 are implemented. Later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
 
 ## M0 — Foundation
 
@@ -18,9 +18,9 @@ Specify the shared Render API/RHI boundary and backend-selection policy. Establi
 
 Select the UI approach and establish panels, commands, selection, undo/redo, document state, and safe separation of editor-only and runtime code.
 
-## M4 — World format/compiler proof
+## M4 — World format/compiler proof (in progress)
 
-Use the [Bystřice proof and source hierarchy](data-source-strategy.md) to introduce independently inspectable layers through one narrow data path. Define the package format and remaining coordinate rules before broader Czech Republic ingestion, and resolve the [WorldCompiler repository split gate](../decisions/0005-world-compiler-repository-split-gate.md) before adding geospatial or ML acquisition dependencies.
+The first portable slice defines and tests strict `.gexstage` input, deterministic `.gexworld` output, a runtime-only reader, coordinate/height precision, validity, provenance, integrity, and CLI inspection using synthetic data. Next, use the [Bystřice proof and source hierarchy](data-source-strategy.md) to introduce independently inspectable real layers through that narrow path. Resolve the [WorldCompiler repository split gate](../decisions/0005-world-compiler-repository-split-gate.md) before adding geospatial or ML acquisition dependencies.
 
 ## M5 — Simulation vertical slice
 

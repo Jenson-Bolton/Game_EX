@@ -23,6 +23,8 @@ The important corrections to the original design are:
 - Controlled parallel startup enforces main-thread affinity and serial reverse-logical cleanup after every worker batch settles.
 - Determinism and headless execution are explicit design properties.
 
-The current source implements the small application/platform window foundation, bounded synchronous jobs, and validated serial/controlled-parallel startup paths. It does not pre-empt the pending specifications for any broader frame scheduler, the renderer, simulation, or editor UI.
+The current source implements the small application/platform window foundation, bounded synchronous jobs, validated serial/controlled-parallel startup paths, and a dependency-free terrain staging/package vertical slice. WorldFormat is now a genuine runtime reader, while source acquisition and conversion remain outside the runtime and behind the repository split gate. It does not pre-empt the pending specifications for any broader frame scheduler, simulation, or full editor UI.
+
+Rendering is explicitly cross-technology: one shared engine-facing Render API will be exercised by both OpenGL 4.6 Core and Vulkan 1.3. The world editor will use that same technology and the same WorldFormat reader as the game to inspect each separately compiled layer before a later compilation/reconciliation step combines layers.
 
 The spelling “Czech Republic” is used throughout this project in accordance with the project owner's preference.

@@ -32,5 +32,11 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    WorldHeader logical_future_minor{};
+    ++logical_future_minor.minor_version;
+    if (!is_supported(logical_future_minor)) {
+        return EXIT_FAILURE;
+    }
+
     return EXIT_SUCCESS;
 }

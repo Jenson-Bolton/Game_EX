@@ -51,7 +51,7 @@ tile_local_float = float(canonical_double - tile_origin_double)
 
 The tile origin stays in double precision, and national-scale EPSG:5514 values are never cast directly to float. Tile boundaries, origin selection, rounding policy, and seam checks must be deterministic. Coordinate transformation occurs offline; each normalised feature retains its source identifier and enough provenance to trace it back to the unmodified snapshot.
 
-This strategy does not select a serialisation syntax, binary world layout, or transformation library. Those remain specification decisions.
+The dependency-free portable slice now selects a strict version-1 `.gexstage` manifest and a concrete `.gexworld` 0.2 binary terrain package. It records EPSG:5514 numeric origins as binary64 and local height offsets as binary32, with one validity byte per sample. This does not select a transformation library or source-adapter stack: coordinate conversion remains an offline, source-specific responsibility behind the WorldCompiler split gate. See the [normative package format](../architecture/world-package-format.md).
 
 ## Inspect-before-combine workflow
 
@@ -85,6 +85,16 @@ These bounds identify the proof and provide a transformation sanity check; they 
 The proof advances one independently visible layer at a time: terrain, authoritative vectors, supplemental OSM, agricultural evidence, and then Dynamic World/TESSERA-derived semantics. DMR 4G may substitute for missing DMR 5G only when the report says so. A source is accepted only when its layer can be loaded separately, its expected extent and key counts are reported, and known reference locations align. The first combined output must also include conflict counts, rejected-record counts, tile-seam results, and a deterministic package checksum.
 
 The proof is not evidence that the pipeline scales to the whole Czech Republic. National ingestion, temporal updates, CZSO integration, and NeTEx integration require later representative tests and their own reports.
+
+### First fresh terrain candidate
+
+The current acquisition candidate is CUZK DMR 5G sheet `BYSH62` (`Bystřice pod Hostýnem 6-2`). The official dataset feed currently identifies the download as `BYSH62.zip`, declares EPSG:5514, and gives a geographic polygon covering Loukov station. This is inventory evidence only: the archive is not committed, downloaded as an accepted source, or compiled by `v0.1.4`. Its exact bytes, checksum, licence terms, vertical reference, acquisition timestamp, and redistribution decision must be recorded at the real-data gate.
+
+- [Official DMR 5G S-JTSK collection feed](https://atom.cuzk.gov.cz/DMR5G-SJTSK/DMR5G-SJTSK.xml)
+- [Official `BYSH62` dataset feed](https://atom.cuzk.gov.cz/DMR5G-SJTSK/datasetFeeds/CZ-00025712-CUZK_DMR5G-SJTSK_BYSH62.xml)
+- [Candidate official archive URL](https://openzu.cuzk.gov.cz/opendata/DMR5G/epsg-5514/BYSH62.zip)
+
+The recovered coursework DMR delivery is not a substitute. Although its LAS and derived LGRID are reproducible enough for forensic comparison, their exact provider delivery identity, licence evidence, embedded CRS/vertical metadata, and no-data lineage are incomplete. The [legacy Bystřice audit](../history/legacy-bystrice-data-audit.md) therefore classifies them as rejected/diagnostic and prohibits copying or combining them in the new pipeline.
 
 ## Provenance and licensing record
 

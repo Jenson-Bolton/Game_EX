@@ -6,6 +6,30 @@ All notable Game_EX changes are recorded here. Detailed implementation evidence,
 
 No changes recorded.
 
+## [0.1.4] - 2026-09-05
+
+### Added
+
+- A strict version-1 `.gexstage` manifest for one EPSG:5514 terrain layer/tile, including explicit source and staged-data provenance, byte sizes, SHA-256 digests, vertical reference, axis order, units, no-data convention, and transformation history.
+- The first concrete `.gexworld` 0.2 wire contract: canonical little-endian encoding, CRC-32/ISO-HDLC integrity, bounded reader allocations, tile-local binary32 heights, double-precision world origins, and a one-byte validity value per sample.
+- `GameEX::WorldCompilerCore` for dependency-free validation and deterministic compilation, plus a runtime-only `GameEX::WorldFormat` reader usable without the compiler.
+- Stable `validate`, `compile`, and `inspect` CLI commands with categorized exit codes and refusal to overwrite output.
+- Unit/integration coverage for deterministic round trips, manifest/path/hash validation, malformed packages, canonical offsets, corruption, version rejection, provenance retention, and CLI behaviour.
+- A project-authored synthetic terrain fixture, a normative format specification, ADR 0009, and a forensic audit of the rejected legacy Bystřice coursework data.
+
+### Changed
+
+- World format version `0.2` now identifies an implemented serialized package rather than the earlier logical-only `0.1` header.
+- Project documentation now distinguishes the implemented portable compiler/reader from the still-pending source adapters, real-data acceptance, editor visualisation, and layer reconciliation.
+
+### Limitations
+
+- The compiler accepts only one small normalised terrain tile represented by text height and validity staging files; it has no acquisition, CRS transformation, LAS/LAZ, GDAL/PROJ, Python, network, or TESSERA adapter.
+- The fixture is synthetic and grants no external reuse rights; it is not evidence for real-world correctness.
+- The game and editor do not load or display `.gexworld` yet, and OpenGL/Vulkan rendering remains a subsequent milestone.
+
+See the [`v0.1.4` technical report](docs/history/reports/v0.1.4.md).
+
 ## [0.1.3] - 2026-09-05
 
 ### Added

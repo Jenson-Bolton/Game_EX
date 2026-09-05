@@ -10,6 +10,7 @@ Each published Game_EX version has a report that connects its aim, implementatio
 | `v0.1.1` | 2026-09-05 | Released | [Report](reports/v0.1.1.md) | Annotated [`v0.1.1` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.1) | Working agreement, versioned evidence history, and central version propagation. |
 | `v0.1.2` | 2026-09-05 | Released | [Report](reports/v0.1.2.md) | Annotated [`v0.1.2` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.2) | Validated deterministic serial startup, rollback, application integration, and recorded real-data/compiler boundaries. |
 | `v0.1.3` | 2026-09-05 | Released | [Report](reports/v0.1.3.md) | Annotated [`v0.1.3` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.3) | Bounded worker batches and deterministic controlled-parallel startup with explicit affinity and failure barriers. |
+| `v0.1.4` | 2026-09-05 | Released | [Report](reports/v0.1.4.md) | Annotated [`v0.1.4` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.4) | Strict portable terrain stage, deterministic package, runtime reader, provenance, integrity, and CLI inspection. |
 | `v0.2.0` | Planned | Planned roll-up | Report created with the release | — | First integrated world-data/compiler/editor capability, summarising its independently verified patch slices. |
 
 ## Bootstrap exception
@@ -21,3 +22,7 @@ The foundation commit was published before this reporting workflow existed. The 
 From `v0.1.1` onward, the implementation, report, changelog, version increment, annotated tag, and GitHub publication form one release unit.
 
 Use the [technical report template](report-template.md) and the [working agreement](../development/README.md) for every new version.
+
+## Recovered pre-restart evidence
+
+The [legacy Bystřice data and provenance audit](legacy-bystrice-data-audit.md) records the exact coursework terrain/OSM artefacts, conversion behaviour, and evidence gaps without importing them. Its current acceptance decision is deliberately negative: those files may inform external diagnostics but are not accepted, copyable, redistributable, or combinable Game_EX data.

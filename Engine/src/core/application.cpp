@@ -23,12 +23,12 @@ public:
      */
     explicit WindowVisibilitySubsystem(platform::Window& window) noexcept : window_(window) {}
 
-    /** @copydoc startup::Subsystem::start */
+    /** @copydoc game_ex::startup::Subsystem::start */
     void start() override {
         window_.show();
     }
 
-    /** @copydoc startup::Subsystem::shutdown */
+    /** @copydoc game_ex::startup::Subsystem::shutdown */
     void shutdown() override {
         window_.hide();
     }

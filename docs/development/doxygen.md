@@ -2,7 +2,7 @@
 
 Human project documentation lives under `docs`; generated API reference lives only under the active CMake build tree.
 
-The root `Doxyfile.in` scans all current C++ public headers and implementation files plus `docs/doxygen`. It extracts private/static code so internal ownership and invariants are reviewable. Undocumented symbols, parameter mismatches, broken references, and documentation errors fail the `docs` target.
+The root `Doxyfile.in` scans all current C++ public headers, implementation files, tests, tools, and `docs/doxygen`. It extracts private/static members and anonymous namespaces so internal ownership, algorithms, and invariants are reviewable. Undocumented symbols, parameter mismatches, broken references, and documentation errors fail the `docs` target.
 
 Use:
 

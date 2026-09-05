@@ -72,7 +72,7 @@ ctest --preset debug
 cmake --build --preset docs
 ```
 
-Add focused tests for the changed behaviour. For GUI work, perform the automated window smoke test and a short visual inspection. For compiler or world-data work, verify malformed-input handling, deterministic output, coordinate and unit invariants, and at least one known real-data sample. Reports must distinguish command output from visual observation and must not claim evidence that was not captured.
+Add focused tests for the changed behaviour. For GUI work, perform the automated window smoke test and a short visual inspection. For source-specific compiler or world-data work, verify malformed-input handling, deterministic output, coordinate and unit invariants, and at least one known real-data sample. A format/codec-only release may instead use a project-authored representative fixture when its report states explicitly that no external dataset or source adapter was accepted. Reports must distinguish command output from visual observation and must not claim evidence that was not captured.
 
 ## Doxygen and human documentation
 

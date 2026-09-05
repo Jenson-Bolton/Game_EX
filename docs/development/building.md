@@ -29,6 +29,27 @@ Executables are placed in `build/vs2022/bin/Debug` for a Debug build.
 
 `--quit-after-ms=<unsigned integer>` is reserved for automated window smoke tests.
 
+The compiler requires a subcommand. Its shortest complete synthetic workflow is:
+
+```powershell
+$compiler = '.\build\vs2022\bin\Debug\game_ex_world_compiler.exe'
+& $compiler validate --manifest .\WorldCompiler\tests\fixtures\minimal\manifest.gexstage
+& $compiler compile --manifest .\WorldCompiler\tests\fixtures\minimal\manifest.gexstage --output .\build\vs2022\minimal.gexworld
+& $compiler inspect --package .\build\vs2022\minimal.gexworld
+```
+
+Remove or rename the output before repeating `compile`; refusing overwrite is part of the compiler contract. The full standalone build and command reference is in the [WorldCompiler README](../../WorldCompiler/README.md).
+
+## Build WorldCompiler independently
+
+The format and compiler remain independently configurable and have no SDL, OpenGL, Vulkan, GDAL, PROJ, Python, or network dependency:
+
+```powershell
+cmake -S .\WorldCompiler -B .\build\world-compiler -A x64
+cmake --build .\build\world-compiler --config Debug
+ctest --test-dir .\build\world-compiler -C Debug --output-on-failure
+```
+
 ## Documentation and tests
 
 ```powershell

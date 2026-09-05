@@ -6,13 +6,18 @@ WorldCompiler converts large heterogeneous source datasets into validated runtim
 
 ## Implemented now
 
-- a logical `WorldHeader` with a signature and major/minor version;
-- a compatibility check shared by compiler and consumers;
-- a dependency-free unit test;
-- a CLI entry point that states that no pipeline is configured.
+- `GameEX::WorldFormat`, containing the logical world model and bounded runtime package reader;
+- `GameEX::WorldCompilerCore`, containing strict staging validation and deterministic compilation;
+- a version-1 `.gexstage` manifest for exactly one EPSG:5514 terrain layer and tile;
+- a concrete `.gexworld` 0.2 little-endian package with CRC-32 integrity, double world origin, local float heights, a validity mask, and embedded provenance;
+- `validate`, `compile`, and `inspect` commands with stable categorized exit codes;
+- a dependency-free synthetic fixture and focused format/compiler/CLI tests;
+- standalone and workspace CMake integration with warning-as-error compilation and Doxygen.
 
-The C++ struct is not an on-disk binary layout. Endianness, schema technology, checksums, spatial indexes, compression, tile addressing, and compatibility rules beyond the initial major-version boundary remain undecided.
+The C++ structures are still semantic models, never disk layouts. The exact bytes and validation rules are defined in the [world package format](../architecture/world-package-format.md), while command usage is in the [WorldCompiler README](../../WorldCompiler/README.md).
+
+This slice starts from already normalised staged text. It has no source adapter, CRS transformation, network access, GDAL/PROJ/Python dependency, TESSERA integration, compression, streaming index, reconciliation, or accepted real-world data. Those omissions are explicit boundaries rather than placeholder behaviour.
 
 ## Future sections
 
-Likely areas include ingest, geography, terrain, buildings, transport, semantics, validation, and packaging. They should be created only as real vertical slices are specified.
+The next compiler-facing decision is whether to move acquisition and source-specific tooling into `Game_EX_WorldCompiler` before adding GDAL/PROJ, Python, network retrieval, or TESSERA. The first accepted data adapter should target the freshly identified CUZK DMR 5G `BYSH62` proof tile, retain the raw source outside ordinary Git, and present it separately in the editor before any layer combination.

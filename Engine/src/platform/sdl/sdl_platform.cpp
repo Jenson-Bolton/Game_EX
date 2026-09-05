@@ -40,14 +40,14 @@ public:
         SDL_DestroyWindow(window_);
     }
 
-    /** @copydoc Window::show */
+    /** @copydoc game_ex::platform::Window::show */
     void show() override {
         if (!SDL_ShowWindow(window_)) {
             throw sdl_error("SDL could not show the window");
         }
     }
 
-    /** @copydoc Window::hide */
+    /** @copydoc game_ex::platform::Window::hide */
     void hide() override {
         if (!SDL_HideWindow(window_)) {
             throw sdl_error("SDL could not hide the window");
@@ -92,7 +92,7 @@ public:
         SDL_Quit();
     }
 
-    /** @copydoc Platform::create_window */
+    /** @copydoc game_ex::platform::Platform::create_window */
     [[nodiscard]] std::unique_ptr<Window> create_window(
         const WindowSpecification& specification) override {
         if (window_created_) {
@@ -129,7 +129,7 @@ public:
         return std::make_unique<SdlWindow>(native_window);
     }
 
-    /** @copydoc Platform::pump_events */
+    /** @copydoc game_ex::platform::Platform::pump_events */
     [[nodiscard]] EventPumpResult pump_events() override {
         SDL_Event event{};
         while (SDL_PollEvent(&event)) {

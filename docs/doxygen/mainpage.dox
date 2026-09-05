@@ -11,7 +11,8 @@
  * - @ref core for the minimal application lifetime;
  * - @ref platform for platform-neutral boot capabilities;
  * - @ref platform_sdl for the SDL3 backend factory;
- * - @ref world_format for the compiler/runtime compatibility boundary;
+ * - @ref world_format for the runtime world model and verified package reader;
+ * - @ref world_compiler for strict offline staging validation and compilation;
  * - @ref game_app for the game and world-editor composition helper.
  *
  * Human-authored vision, scope, architecture, section, development, and decision

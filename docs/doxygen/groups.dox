@@ -15,7 +15,12 @@
 
 /**
  * @defgroup world_format Runtime world format
- * @brief Versioned contract shared by compiler, game, and editor.
+ * @brief Versioned model and package reader shared by compiler, game, and editor.
+ */
+
+/**
+ * @defgroup world_compiler World compiler
+ * @brief Offline staging validation and deterministic runtime-package construction.
  */
 
 /**

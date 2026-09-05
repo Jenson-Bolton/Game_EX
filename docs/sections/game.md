@@ -6,6 +6,6 @@ The Game project owns domain simulation and the player-facing composition root. 
 
 ## Implemented now
 
-`game_ex` composes the SDL platform backend, a `1280 x 720` resizable window, and the minimal engine application loop. It prints the shared logical world-format version for diagnostics and exits cleanly on a close request.
+`game_ex` composes the SDL platform backend, a `1280 x 720` resizable window, and the minimal engine application loop. It prints the shared world-format version for diagnostics and exits cleanly on a close request. `GameEX::WorldFormat` now supplies a verified package reader, but the game composition root does not yet load a package.
 
 There is no gameplay, renderer, ECS, or simulation loop yet. The application loop must not be expanded into those systems before fixed-step timing, job interaction, determinism, and render extraction are specified.

@@ -12,14 +12,14 @@ game_ex_world_editor ----------+--> GameEX::GameApp
                                       +--> GameEX::Core --> GameEX::Startup --> GameEX::Jobs
                                       +--> GameEX::PlatformSDL --> SDL3
 
-game_ex_world_compiler ------------> GameEX::WorldFormat
+game_ex_world_compiler --> GameEX::WorldCompilerCore --> GameEX::WorldFormat
 ```
 
 `GameEX::Core` sees only the abstract `Platform` and `Window` contracts. Its owned `GameEX::Startup` graph validates and runs ordinary subsystem objects without exposing global lookup. `GameEX::PlatformSDL` implements the platform contracts and is the only current target that includes SDL headers. The game and editor composition roots select SDL3, then transfer ownership into `Application`.
 
-`GameEX::WorldFormat` is deliberately tiny. It establishes a compiler/runtime boundary without pretending that an on-disk schema has been designed. The logical header must not be serialized by copying its C++ memory representation.
+`GameEX::WorldFormat` owns the small, runtime-safe logical model and verified `.gexworld` reader. It has no dependency on compiler implementation. `GameEX::WorldCompilerCore` validates a strict normalised stage and uses an internal encoder; the CLI is only an offline composition root. The first concrete package is explicitly encoded rather than written from C++ object memory. Its exact contract is documented in the [world package format](world-package-format.md).
 
-`GameEX::Jobs` is an ordinarily owned synchronous batch service injected into controlled parallel startup; it is not a service locator or a general asynchronous system. The next engine shape is expected to add resources, serialization, ECS, world runtime, input, audio, a shared Render API/RHI, and separate OpenGL and Vulkan backends. Those are directions, not claims that the targets already exist or permission to scaffold unused modules.
+`GameEX::Jobs` is an ordinarily owned synchronous batch service injected into controlled parallel startup; it is not a service locator or a general asynchronous system. The next engine shape is expected to add a shared Render API/RHI and separate OpenGL and Vulkan backends, then let the editor load the current WorldFormat package for a diagnostic terrain view. Resources, ECS, simulation, input, audio, and broader world streaming remain directions rather than implemented claims.
 
 ## Dependency rules
 
