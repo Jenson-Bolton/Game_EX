@@ -2,7 +2,7 @@
 
 ## Purpose
 
-WorldCompiler converts large heterogeneous source datasets into validated runtime packages. WorldFormat is the narrow contract read by the game and editor.
+WorldCompiler converts large heterogeneous source datasets into validated runtime packages. WorldFormat is the narrow contract available to runtime consumers; the current editor reads it while the game deliberately does not.
 
 ## Implemented now
 
@@ -12,11 +12,13 @@ WorldCompiler converts large heterogeneous source datasets into validated runtim
 - a concrete `.gexworld` 0.2 little-endian package with CRC-32 integrity, double world origin, local float heights, a validity mask, and embedded provenance;
 - `validate`, `compile`, and `inspect` commands with stable categorized exit codes;
 - a dependency-free synthetic fixture and focused format/compiler/CLI tests;
+- editor fixture integration that compiles the synthetic stage with the CLI and
+  then visualises the resulting package through the compiler-independent reader;
 - standalone and workspace CMake integration with warning-as-error compilation and Doxygen.
 
 The C++ structures are still semantic models, never disk layouts. The exact bytes and validation rules are defined in the [world package format](../architecture/world-package-format.md), while command usage is in the [WorldCompiler README](../../WorldCompiler/README.md).
 
-This slice starts from already normalised staged text. It has no source adapter, CRS transformation, network access, GDAL/PROJ/Python dependency, TESSERA integration, compression, streaming index, reconciliation, or accepted real-world data. Those omissions are explicit boundaries rather than placeholder behaviour.
+This slice starts from already normalised staged text. It has no source adapter, CRS transformation, network access, GDAL/PROJ/Python dependency, TESSERA integration, compression, streaming index, reconciliation, or accepted real-world data. The editor view is a bounded diagnostic raster, not a navigable terrain renderer. Those omissions are explicit boundaries rather than placeholder behaviour.
 
 ## Future sections
 

@@ -19,10 +19,11 @@ WorldCompiler/
 `-- CMakeLists.txt
 
 Game/
-|-- include/game_ex/game/ Shared game-application API
+|-- include/game_ex/game/ Public game and editor application APIs
 |-- src/app/              Game composition root
-|-- src/editor/           Editor composition root
-|-- src/common/           Shared application composition
+|-- src/editor/           Editor composition and package-to-raster model
+|-- src/common/           Shared desktop application composition
+|-- tests/                Editor-model and pre-window integration tests
 `-- CMakeLists.txt
 
 docs/

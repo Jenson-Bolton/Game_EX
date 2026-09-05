@@ -1,6 +1,6 @@
 /**
  * @file vulkan_renderer_smoke.cpp
- * @brief Real SDL/Vulkan 1.3 transfer-clear presentation smoke test.
+ * @brief Real SDL/Vulkan 1.3 diagnostic-raster presentation smoke test.
  */
 
 #include "game_ex/platform/sdl_platform.hpp"
@@ -15,6 +15,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -51,12 +52,26 @@ game_ex::render::VulkanValidationMode validation_mode(const int argument_count,
 }
 
 /**
- * @brief Runs a real transfer clear until native presentation succeeds.
+ * @brief Runs a real 2x2 raster until repeated native presentation succeeds.
  * @param mode Validation-layer availability policy.
  * @return True when API, presentation, and validation evidence meet the
  * baseline.
  */
 bool run_smoke(const game_ex::render::VulkanValidationMode mode) {
+    const game_ex::render::RenderFrame frame{
+        .background = game_ex::render::foundation_diagnostic_frame(),
+        .raster = game_ex::render::DiagnosticRaster{
+            .columns = 2U,
+            .rows = 2U,
+            .display_aspect_ratio = 1.0F,
+            .linear_colours = {
+                {.red = 0.85F, .green = 0.10F, .blue = 0.10F, .alpha = 1.0F},
+                {.red = 0.10F, .green = 0.85F, .blue = 0.10F, .alpha = 1.0F},
+                {.red = 0.10F, .green = 0.10F, .blue = 0.85F, .alpha = 1.0F},
+                {.red = 0.85F, .green = 0.85F, .blue = 0.10F, .alpha = 1.0F},
+            },
+        },
+    };
     auto platform = game_ex::platform::create_sdl_platform({
         .application_name = "Game_EX Vulkan smoke",
         .application_version = GAMEEX_VERSION_STRING,
@@ -74,7 +89,7 @@ bool run_smoke(const game_ex::render::VulkanValidationMode mode) {
     auto renderer = factory->create(*window);
 
     renderer->start();
-    static_cast<void>(renderer->render_frame(game_ex::render::foundation_diagnostic_frame()));
+    static_cast<void>(renderer->render_frame(frame));
     window->show();
 
     constexpr std::uint32_t required_visible_presentations{32U};
@@ -85,7 +100,7 @@ bool run_smoke(const game_ex::render::VulkanValidationMode mode) {
         if (platform->pump_events() == game_ex::platform::EventPumpResult::exit_requested) {
             break;
         }
-        const auto result = renderer->render_frame(game_ex::render::foundation_diagnostic_frame());
+        const auto result = renderer->render_frame(frame);
         if (result == game_ex::render::FramePresentationResult::presented) {
             ++visible_presentations;
         } else {
@@ -104,8 +119,15 @@ bool run_smoke(const game_ex::render::VulkanValidationMode mode) {
     passed &= check(diagnostics.presentation.find("_SRGB") != std::string::npos
                         && diagnostics.presentation.find("FIFO") != std::string::npos,
                     "diagnostics record sRGB plus FIFO presentation");
+    passed &= check(diagnostics.presentation.find("dynamic-rendering raster")
+                            != std::string::npos,
+                    "diagnostics record the Vulkan 1.3 dynamic-rendering raster path");
     passed &= check(diagnostics.presented_frames >= required_visible_presentations,
                     "backend diagnostics count the visible native presentations");
+    passed &= check(diagnostics.last_presented_raster_columns == 2U
+                        && diagnostics.last_presented_raster_rows == 2U
+                        && diagnostics.last_presented_raster_cell_count == 4U,
+                    "diagnostics prove that the complete 2x2 raster was presented");
     passed &=
         check(diagnostics.debug_error_count == 0U, "no Vulkan validation errors were observed");
     if (mode == game_ex::render::VulkanValidationMode::required) {
@@ -117,6 +139,9 @@ bool run_smoke(const game_ex::render::VulkanValidationMode mode) {
               << diagnostics.api_patch << " | " << diagnostics.device << " | "
               << diagnostics.presentation
               << " | validation=" << (diagnostics.debug_diagnostics ? "enabled" : "disabled")
+              << " | raster=" << diagnostics.last_presented_raster_columns << 'x'
+              << diagnostics.last_presented_raster_rows << '/'
+              << diagnostics.last_presented_raster_cell_count
               << '\n';
 
     window->hide();

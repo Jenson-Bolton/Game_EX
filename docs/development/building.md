@@ -13,8 +13,9 @@
 
 SDL3 3.4.14 remains URL/hash pinned in `Engine/CMakeLists.txt`. The audited GLAD
 2.0.8 core loader remains vendored with its existing configure-time hashes and
-LF controls. Vulkan uses the system LunarG SDK; this clear-only slice does not
-discover or require `glslc`, `glslangValidator`, shaders, or SPIR-V.
+LF controls. Vulkan uses the system LunarG SDK. The bounded raster remains
+shaderless, so the build does not discover or require `glslc`,
+`glslangValidator`, runtime shader files, or SPIR-V.
 
 ## Vulkan SDK discovery
 
@@ -81,6 +82,11 @@ Use an explicit backend when diagnosing or testing it:
 `--quit-after-ms=<unsigned integer>` automation option may appear before or
 after `--renderer`. Unknown, empty, repeated, or conflicting options fail.
 
+The editor additionally accepts one optional `--world=<path.gexworld>`. It
+loads, verifies, maps, and logs the package before it creates SDL or prints a
+renderer attempt. With no `--world`, it retains the clear-only shell. An empty
+or repeated world option fails.
+
 ## Standalone Engine
 
 ```powershell
@@ -115,6 +121,26 @@ $compiler = '.\build\vs2022\bin\Debug\game_ex_world_compiler.exe'
 The compiler refuses to overwrite an output. See
 [`WorldCompiler/README.md`](../../WorldCompiler/README.md) for the complete
 manifest and command contract.
+
+Open that exact package as a height/validity plan view:
+
+```powershell
+$editor = '.\build\vs2022\bin\Debug\game_ex_world_editor.exe'
+& $editor --world=.\build\vs2022\minimal.gexworld --renderer=opengl
+& $editor --world=.\build\vs2022\minimal.gexworld --renderer=vulkan
+```
+
+The bottom-left fixture cell is the first sample, source +Y points upward, and
+the view preserves the half-cell-padded `columns * spacing_x` by
+`rows * spacing_y` sample-footprint aspect. Valid
+heights progress blue–green–yellow; invalid coverage blends toward magenta.
+Sources larger than `64 x 64` are reduced for display and the console states
+both source and displayed dimensions. This does not modify the package or offer
+full-resolution/quantitative inspection.
+
+If `compile` reports that the output already exists, choose a different output
+path or deliberately remove the old build artifact before rerunning it. Do not
+overwrite a package whose provenance is still under review.
 
 ## Documentation
 

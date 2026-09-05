@@ -15,7 +15,7 @@
 
 /**
  * @defgroup render Render API
- * @brief Backend-neutral diagnostic-frame rendering and lifecycle contracts.
+ * @brief Backend-neutral background/raster rendering and lifecycle contracts.
  */
 
 /**
@@ -25,7 +25,7 @@
 
 /**
  * @defgroup render_vulkan Vulkan renderer backend
- * @brief SDL/Vulkan 1.3 transfer-clear implementation of the shared Render API.
+ * @brief SDL/Vulkan 1.3 transfer/dynamic-rendering implementation of the shared Render API.
  */
 
 /**
@@ -40,5 +40,5 @@
 
 /**
  * @defgroup game_app Game application composition
- * @brief Shared launcher surface for the game and world editor.
+ * @brief Shared desktop launcher plus editor-only package-view composition.
  */

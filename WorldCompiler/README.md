@@ -97,6 +97,32 @@ owns it.
 Diagnostics are written to standard error. Successful machine-readable summaries
 are line-oriented `key=value` text on standard output.
 
+## Visualise a compiled package
+
+Build the complete workspace, compile the fixture as above, then pass the output
+to the editor. The editor loads and validates the package before creating a
+window or trying a renderer:
+
+```powershell
+cmake -S . -B build -DGAMEEX_ENABLE_GUI_SMOKE_TESTS=ON
+cmake --build build --config Debug
+build/bin/Debug/game_ex_world_editor.exe --world=WorldCompiler/build/synthetic.gexworld --renderer=opengl
+build/bin/Debug/game_ex_world_editor.exe --world=WorldCompiler/build/synthetic.gexworld --renderer=vulkan
+```
+
+The current shaderless plan view preserves the grid's half-cell-padded sample
+footprint (`columns * spacing_x` by `rows * spacing_y`). This display footprint
+is distinct from the package's first-to-last sample-centre bounds.
+Rows increase upward in world +Y. Valid heights use one package-wide
+blue-to-green-to-yellow ramp; invalid samples are magenta. Inputs larger than
+64 cells on either axis are reduced into deterministic bins before rendering.
+This is an inspection aid for validating the data contract, not the eventual
+navigable 3D world editor.
+
+The editor links only the public `GameEX::WorldFormat` reader. It never invokes
+or links `GameEX::WorldCompilerCore`, so packages remain explicit, reproducible
+build artefacts rather than hidden editor state.
+
 ## Staging directory and manifest
 
 Use `manifest.gexstage` as the conventional manifest name. Parsing is
@@ -321,7 +347,8 @@ declaration belong only to `GameEX::WorldCompilerCore`.
 - complete package at most 64 MiB;
 - no acquisition, GDAL/PROJ adapter, reprojection, resampling, seam handling,
   multi-source reconciliation, building/road/semantic layers, or TESSERA inference;
-- no editor or game rendering integration in this slice;
+- bounded 2D editor inspection only; no game rendering integration or navigable
+  3D terrain view;
 - no claim that the synthetic coordinate values describe a real place;
 - no separate licence has been selected for the project-authored fixture, and its
   metadata explicitly does not grant external reuse rights.

@@ -8,13 +8,18 @@ Engine contains reusable infrastructure that has no knowledge of the Game_EX sim
 
 - `GameEX::Jobs`: owns 1–32 persistent workers and executes bounded synchronous batches with input-indexed results.
 - `GameEX::Startup`: validates an owned dependency graph, offers deterministic serial and bounded controlled-parallel startup paths, and performs reverse shutdown or partial-start rollback.
-- `GameEX::Core`: owns the foundation application lifetime, renderer, and diagnostic-frame event loop.
+- `GameEX::Core`: owns the foundation application lifetime, renderer, immutable render frame, and diagnostic event loop.
 - `GameEX::Platform`: exposes platform-neutral window capabilities, including the graphics API required at creation.
 - `GameEX::PlatformSDL`: initialises SDL3, creates one native presentation-capable window, and pumps close events.
-- `GameEX::Render`: defines backend-neutral lifecycle, validated clear frames, diagnostics, and factories.
-- `GameEX::RenderOpenGL`: creates and verifies an OpenGL 4.6 Core context, loads it through GLAD, and clears/presents through SDL.
-- `GameEX::RenderVulkan`: creates a Vulkan 1.3/synchronization2 device and
-  deterministic sRGB FIFO transfer-clear swapchain behind the same Render API.
+- `GameEX::Render`: defines backend-neutral lifecycle, validated linear
+  background/optional bounded raster frames, shared aspect layout, diagnostics,
+  and factories.
+- `GameEX::RenderOpenGL`: creates and verifies an OpenGL 4.6 Core context, loads
+  it through GLAD, and presents backgrounds plus raster cells with scissored
+  sRGB clears.
+- `GameEX::RenderVulkan`: creates a Vulkan 1.3 synchronization2/dynamic-rendering
+  device and deterministic sRGB FIFO swapchain, using transfer clears for the
+  foundation and attachment clears for bounded rasters.
 
 ## Invariants
 
@@ -25,9 +30,10 @@ Engine contains reusable infrastructure that has no knowledge of the Game_EX sim
 - Video initialisation, context operations, window operations, rendering, event pumping, and destruction stay on the composition thread.
 - Renderer startup and a hidden presentation attempt precede visibility; a zero
   extent may defer until the visible loop, and timed tests require a real present.
-- Diagnostic colours are finite linear values in `[0, 1]`; OpenGL verifies a
-  double-buffered sRGB framebuffer and Vulkan accepts only sRGB/nonlinear FIFO
-  transfer-destination swapchains.
+- Diagnostic colours are finite linear values in `[0, 1]`; optional owning
+  rasters are at most `64 x 64`, row zero is lower, and a shared integer layout
+  preserves declared aspect. OpenGL verifies a double-buffered sRGB framebuffer;
+  Vulkan accepts only sRGB/nonlinear FIFO transfer/colour-attachment swapchains.
 - Vulkan selection/device/queue/format/extent/image-count/composite policy is
   deterministic; one frame is in flight with a present-wait semaphore per image.
 - A typed deferral remains retryable, while a native frame exception is terminal
@@ -41,7 +47,9 @@ Engine contains reusable infrastructure that has no knowledge of the Game_EX sim
 
 ## Planned, not implemented
 
-Shaders, meshes, resource lifetimes, terrain rendering, render-world extraction,
-core configuration, serialization, ECS, input, audio, world streaming, profiling,
-headless rendering, maintenance1 presentation fences, and any broader
-asynchronous/frame-job system still require their own boundaries and tests.
+Shaders, textures, buffers, meshes, scalable resource lifetimes, production
+terrain rendering, render-world extraction, core configuration, serialization,
+ECS, input, audio, world streaming, profiling, headless rendering, maintenance1
+presentation fences, and any broader asynchronous/frame-job system still
+require their own boundaries and tests. Engine intentionally has no knowledge
+of `.gexworld`, terrain, EPSG:5514, provenance, or editor mapping.

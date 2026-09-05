@@ -23,8 +23,8 @@ using game_ex::platform::Platform;
 using game_ex::platform::Window;
 using game_ex::platform::WindowGraphicsApi;
 using game_ex::platform::WindowSpecification;
-using game_ex::render::DiagnosticFrame;
 using game_ex::render::FramePresentationResult;
+using game_ex::render::RenderFrame;
 using game_ex::render::Renderer;
 using game_ex::render::RendererBackend;
 using game_ex::render::RendererDiagnostics;
@@ -43,6 +43,15 @@ struct TestState final {
 
     /** Number of frames accepted by the fake renderer. */
     int rendered_frames{};
+
+    /** Owning snapshots received by the fake renderer in presentation order. */
+    std::vector<RenderFrame> received_frames;
+
+    /** Address of the immutable frame used for the first presentation attempt. */
+    const RenderFrame* first_received_frame{};
+
+    /** Whether every attempt reused the exact Application-owned frame object. */
+    bool reused_one_frame{true};
 
     /** Number of event-pump calls made by Application. */
     int pump_calls{};
@@ -224,9 +233,16 @@ public:
 
     /** @copydoc game_ex::render::Renderer::render_frame */
     [[nodiscard]] FramePresentationResult render_frame(
-        const DiagnosticFrame& frame) override {
-        game_ex::render::validate_diagnostic_frame(frame);
+        const RenderFrame& frame) override {
+        game_ex::render::validate_render_frame(frame);
         state_->events.emplace_back("renderer.frame");
+        if (state_->first_received_frame == nullptr) {
+            state_->first_received_frame = &frame;
+        } else {
+            state_->reused_one_frame = state_->reused_one_frame
+                && state_->first_received_frame == &frame;
+        }
+        state_->received_frames.push_back(frame);
         ++state_->rendered_frames;
         if (state_->fail_frame == state_->rendered_frames) {
             lifecycle_state_ = RendererLifecycleState::failed;
@@ -363,6 +379,64 @@ bool test_successful_lifecycle_order() {
         state->requested_api == WindowGraphicsApi::open_gl,
         "Application applies the renderer factory window capability");
     passed &= check(state->rendered_frames == 2, "startup and main loop both render a frame");
+    return passed;
+}
+
+/**
+ * @brief Verifies Application owns and reuses one immutable complete frame.
+ * @return True when caller mutation cannot affect hidden or visible attempts.
+ */
+bool test_owned_render_frame_reuse() {
+    auto state = std::make_shared<TestState>();
+    FakeRendererFactory factory{state};
+    game_ex::core::RunConfiguration requested = test_run_configuration();
+    requested.render_frame = {
+        .background = {0.1F, 0.2F, 0.3F, 1.0F},
+        .raster = game_ex::render::DiagnosticRaster{
+            .columns = 2U,
+            .rows = 1U,
+            .display_aspect_ratio = 2.0F,
+            .linear_colours = {
+                {1.0F, 0.0F, 0.0F, 1.0F},
+                {0.0F, 1.0F, 0.0F, 1.0F},
+            },
+        },
+    };
+
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state),
+            test_window(),
+            factory,
+            requested};
+
+        requested.render_frame.background = {0.9F, 0.9F, 0.9F, 1.0F};
+        requested.render_frame.raster.reset();
+        if (application.run() != 0) {
+            return check(false, "custom-frame fake application returns zero");
+        }
+    }
+
+    bool passed = check(
+        state->received_frames.size() == 2U,
+        "hidden and visible attempts both receive a complete frame");
+    passed &= check(
+        state->reused_one_frame,
+        "hidden and visible attempts reuse one Application-owned frame object");
+    for (const RenderFrame& frame : state->received_frames) {
+        passed &= check(
+            frame.background.red == 0.1F && frame.raster.has_value(),
+            "post-construction caller mutation cannot alter the owned frame");
+        if (frame.raster.has_value()) {
+            passed &= check(
+                frame.raster->columns == 2U
+                    && frame.raster->rows == 1U
+                    && frame.raster->linear_colours.size() == 2U
+                    && frame.raster->linear_colours[0].red == 1.0F
+                    && frame.raster->linear_colours[1].green == 1.0F,
+                "owned raster metadata and row-major colours remain intact");
+        }
+    }
     return passed;
 }
 
@@ -642,6 +716,31 @@ bool test_composition_validation() {
             conflict_state->events.end(),
             "platform.create_window") == conflict_state->events.end(),
         "capability conflict is rejected before native window creation");
+
+    auto invalid_frame_state = std::make_shared<TestState>();
+    FakeRendererFactory invalid_frame_factory{invalid_frame_state};
+    game_ex::core::RunConfiguration invalid_run = test_run_configuration();
+    invalid_run.render_frame.raster = game_ex::render::DiagnosticRaster{
+        .columns = 1U,
+        .rows = 1U,
+        .display_aspect_ratio = 1.0F,
+        .linear_colours = {},
+    };
+    passed &= check(
+        throws_exception<std::invalid_argument>([&] {
+            game_ex::core::Application application{
+                std::make_unique<FakePlatform>(invalid_frame_state),
+                test_window(),
+                invalid_frame_factory,
+                invalid_run};
+        }),
+        "invalid configured frame is rejected by Application construction");
+    passed &= check(
+        std::find(
+            invalid_frame_state->events.begin(),
+            invalid_frame_state->events.end(),
+            "platform.create_window") == invalid_frame_state->events.end(),
+        "invalid configured frame is rejected before native window creation");
     return passed;
 }
 
@@ -654,6 +753,7 @@ bool test_composition_validation() {
 int main() {
     bool passed = true;
     passed &= test_successful_lifecycle_order();
+    passed &= test_owned_render_frame_reuse();
     passed &= test_deferred_hidden_attempt_then_visible_present();
     passed &= test_timed_run_rejects_permanent_deferral();
     passed &= test_start_failure_rollback();

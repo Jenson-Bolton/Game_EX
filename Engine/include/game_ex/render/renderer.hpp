@@ -6,9 +6,11 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace game_ex::render {
 
@@ -115,7 +117,7 @@ private:
 };
 
 /**
- * @brief One clear colour for the diagnostic renderer slice.
+ * @brief One linear RGBA colour for a diagnostic background or raster cell.
  *
  * Components are linear floating-point values in the inclusive range [0, 1].
  * This release intentionally exposes no shaders, meshes, command buffers, or
@@ -137,6 +139,48 @@ struct DiagnosticFrame final {
     float alpha{1.0F};
 };
 
+/** Maximum supported column or row count in one diagnostic raster. */
+inline constexpr std::uint32_t maximum_diagnostic_raster_dimension{64U};
+
+/** Maximum supported colour-cell count in one diagnostic raster. */
+inline constexpr std::uint64_t maximum_diagnostic_raster_cells{4096U};
+
+/**
+ * @brief Small owning colour raster for backend-consistent diagnostic previews.
+ *
+ * Colours use row-major storage. Row zero is the lower display edge, so index
+ * `row * columns + column` maps directly to the bottom-origin rectangles shared
+ * by the OpenGL and Vulkan backends. The display aspect ratio is the intended
+ * width divided by height; it need not match the logical column-to-row ratio.
+ *
+ * @ingroup render
+ */
+struct DiagnosticRaster final {
+    /** Logical number of columns in the inclusive range [1, 64]. */
+    std::uint32_t columns{};
+
+    /** Logical number of rows in the inclusive range [1, 64]. */
+    std::uint32_t rows{};
+
+    /** Intended displayed width divided by height; finite and greater than zero. */
+    float display_aspect_ratio{1.0F};
+
+    /** Owning row-major linear RGBA colours, starting at the lower-left cell. */
+    std::vector<DiagnosticFrame> linear_colours;
+};
+
+/**
+ * @brief Complete backend-neutral input for one diagnostic presentation.
+ * @ingroup render
+ */
+struct RenderFrame final {
+    /** Linear RGBA colour drawn across the complete drawable before any raster. */
+    DiagnosticFrame background;
+
+    /** Optional owning colour raster aspect-fitted over the background. */
+    std::optional<DiagnosticRaster> raster;
+};
+
 /**
  * @brief Observable outcome of one backend-neutral presentation request.
  * @ingroup render
@@ -153,11 +197,18 @@ enum class FramePresentationResult {
 };
 
 /**
- * @brief Returns the shared game/editor diagnostic clear frame.
- * @return Finite, validated dark-blue clear colour.
+ * @brief Returns the shared game/editor foundation colour.
+ * @return Finite, validated dark-blue linear RGBA colour.
  * @ingroup render
  */
 [[nodiscard]] DiagnosticFrame foundation_diagnostic_frame() noexcept;
+
+/**
+ * @brief Returns the shared game/editor foundation presentation.
+ * @return Foundation clear colour wrapped in a frame with no diagnostic raster.
+ * @ingroup render
+ */
+[[nodiscard]] RenderFrame foundation_render_frame() noexcept;
 
 /**
  * @brief Validates the backend-neutral diagnostic frame contract.
@@ -166,6 +217,24 @@ enum class FramePresentationResult {
  * @ingroup render
  */
 void validate_diagnostic_frame(const DiagnosticFrame& frame);
+
+/**
+ * @brief Validates dimensions, aspect, storage, and every colour in a raster.
+ * @param raster Owning diagnostic raster to validate.
+ * @throws std::invalid_argument if a dimension is outside [1, 64], the cell
+ * count is not the exact dimension product or exceeds 4096, the aspect ratio
+ * is not finite and positive, or any colour violates its component contract.
+ * @ingroup render
+ */
+void validate_diagnostic_raster(const DiagnosticRaster& raster);
+
+/**
+ * @brief Validates a complete backend-neutral presentation before native work.
+ * @param frame Background and optional raster to validate.
+ * @throws std::invalid_argument if the background or optional raster is invalid.
+ * @ingroup render
+ */
+void validate_render_frame(const RenderFrame& frame);
 
 /**
  * @brief Runtime facts reported by a successfully started renderer.
@@ -207,6 +276,15 @@ struct RendererDiagnostics final {
 
     /** Number of API validation errors observed by enabled debug diagnostics. */
     std::uint64_t debug_error_count{};
+
+    /** Columns in the most recently presented raster, or zero when absent. */
+    std::uint32_t last_presented_raster_columns{};
+
+    /** Rows in the most recently presented raster, or zero when absent. */
+    std::uint32_t last_presented_raster_rows{};
+
+    /** Colour cells in the most recently presented raster, or zero when absent. */
+    std::uint64_t last_presented_raster_cell_count{};
 };
 
 /**
@@ -251,18 +329,19 @@ public:
     virtual void start() = 0;
 
     /**
-     * @brief Clears the drawable pixel area and presents one diagnostic frame.
-     * @param frame Validated clear colour shared by game and editor composition.
+     * @brief Draws and presents one complete diagnostic frame.
+     * @param frame Background and optional colour raster shared by compositions.
      * @return Presented, deferred at zero extent, or deferred for a surface change.
-     * @throws std::invalid_argument if frame components violate the public contract.
+     * @throws std::invalid_argument if any complete-frame validation rule is violated.
      * @throws RendererError if lifecycle, drawable query, API work, or swap fails.
+     * @throws std::bad_alloc if optional raster layout storage cannot be allocated.
      *
      * Invalid input and a typed deferral leave the renderer running. Once native
      * frame work fails, the backend enters `failed`; callers must shut it down and
      * must not retry presentation on that object.
      */
     [[nodiscard]] virtual FramePresentationResult render_frame(
-        const DiagnosticFrame& frame) = 0;
+        const RenderFrame& frame) = 0;
 
     /**
      * @brief Returns facts queried from the active graphics context.

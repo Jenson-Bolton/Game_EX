@@ -6,6 +6,46 @@ All notable Game_EX changes are recorded here. Detailed implementation evidence,
 
 No changes recorded.
 
+## [0.1.7] - 2026-09-05
+
+### Added
+
+- An owning, validated, backend-neutral diagnostic raster capped at `64 x 64`,
+  with half-cell-padded sample-footprint aspect, lower-row origin, shared
+  integer letterboxing, and last-presented raster diagnostics.
+- An editor-only world application/model target that can read
+  `--world=<path.gexworld>` before native startup, log package/provenance facts,
+  and convert terrain height plus validity to a deterministic plan-view raster.
+- Blue-green-yellow global height mapping, vivid-magenta invalid data, flat-field
+  handling, invalid-fraction blending, and deterministic bounded downsampling.
+- OpenGL scissored cell clears and Vulkan 1.3 dynamic-rendering attachment clears
+  over the same neutral raster, with transactional Vulkan swapchain image views.
+- Pure raster validation/layout/editor tests, test-owned package preparation,
+  editor data smokes for both APIs, pre-window failure evidence, ADR 0012, and
+  this version's technical report.
+
+### Changed
+
+- `Renderer::render_frame` now accepts a `RenderFrame` containing a background
+  and optional diagnostic raster; `Application` owns one immutable frame across
+  hidden and visible presentation attempts.
+- The shared desktop runner accepts an owning frame, while the game continues to
+  use the foundation clear and does not link editor-only implementation code.
+- Vulkan device/swapchain suitability additionally requires dynamic rendering,
+  colour-attachment surface usage, and colour-attachment format support.
+- The project version is now `0.1.7`.
+
+### Limitations
+
+- The raster viewer is a bounded static diagnostic based on per-cell clears, not
+  a scalable texture/shader path or navigable 3D terrain view.
+- The visualized fixture is still project-authored synthetic data; no real source
+  adapter, geographic dataset, TESSERA embedding, or layer combination is added.
+- Automated evidence checks semantic inputs, command execution, diagnostics, and
+  validation rather than cross-driver captured-pixel equality.
+
+See the [`v0.1.7` technical report](docs/history/reports/v0.1.7.md).
+
 ## [0.1.6] - 2026-09-05
 
 ### Added

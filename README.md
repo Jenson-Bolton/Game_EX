@@ -2,13 +2,14 @@
 
 Game_EX is a new C++20 foundation for a large-world transport, city, and land-use simulation. It is intentionally split into a reusable engine, an offline world compiler/runtime world format, and the game applications.
 
-The current `v0.1.6` foundation combines deterministic startup/jobs, the first
-portable world-data contract, and real cross-technology rendering. The game and
-world editor use the same backend-neutral Render API and exact linear diagnostic
-frame through either OpenGL 4.6 Core or Vulkan 1.3. Omission or
-`--renderer=auto` tries Vulkan first; explicit `opengl`/`vulkan` never silently
-fall back. The dependency-free WorldCompiler still compiles and reopens one
-strict synthetic terrain package. Neither application visualises it yet.
+The current `v0.1.7` foundation combines deterministic startup/jobs, a portable
+world-data contract, and real cross-technology rendering. The standalone world
+editor can verify a `.gexworld` package before opening a window and display its
+terrain height and validity as an aspect-correct 2D diagnostic raster through
+either OpenGL 4.6 Core or Vulkan 1.3. Omission or `--renderer=auto` tries Vulkan
+first; explicit `opengl`/`vulkan` never silently fall back. The player game keeps
+the foundation frame and does not link editor implementation or offline compiler
+code. The committed source fixture remains synthetic.
 
 ## Repository layout
 
@@ -64,7 +65,18 @@ Exercise the portable compiler with its project-authored fixture:
 .\build\vs2022\bin\Debug\game_ex_world_compiler.exe inspect --package .\build\vs2022\minimal.gexworld
 ```
 
-The compiler refuses to overwrite an existing package. See the [WorldCompiler guide](WorldCompiler/README.md) for the manifest contract, stable exit codes, standalone build, and complete command reference.
+Open the compiled package in the editor through either renderer:
+
+```powershell
+.\build\vs2022\bin\Debug\game_ex_world_editor.exe --world=.\build\vs2022\minimal.gexworld --renderer=opengl
+.\build\vs2022\bin\Debug\game_ex_world_editor.exe --world=.\build\vs2022\minimal.gexworld --renderer=vulkan
+```
+
+The compiler refuses to overwrite an existing package. Delete or choose a new
+test output before repeating `compile`. See the [WorldCompiler
+guide](WorldCompiler/README.md) for the manifest contract, stable exit codes,
+standalone build, and complete command reference. The editor's current view is a
+bounded static plan-view diagnostic, not a navigable 3D terrain renderer.
 
 Generate checked API documentation:
 

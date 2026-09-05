@@ -8,7 +8,6 @@
 #include "game_ex/core/application.hpp"
 #include "game_ex/platform/sdl_platform.hpp"
 #include "game_ex/render/opengl_renderer.hpp"
-#include "game_ex/world_format/world_header.hpp"
 #include "renderer_selection.hpp"
 
 #if GAMEEX_HAS_VULKAN_BACKEND
@@ -16,7 +15,6 @@
 #endif
 
 #include <chrono>
-#include <cstddef>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -24,7 +22,6 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 namespace game_ex::game {
 namespace {
@@ -116,6 +113,7 @@ namespace {
  * @brief Runs one backend in a completely fresh platform/application composition.
  * @param specification Shared application identity and window request.
  * @param automatic_exit Optional smoke-test lifetime.
+ * @param render_frame Owning diagnostic frame retained by the common runner.
  * @param backend Explicit backend for this one attempt.
  * @return Normal exit status or typed failure facts with visibility phase.
  * @throws Any non-renderer exception without converting it into a fallback signal.
@@ -123,6 +121,7 @@ namespace {
 [[nodiscard]] selection_detail::RendererAttemptResult run_renderer_attempt(
     const DesktopApplicationSpecification& specification,
     const std::optional<std::chrono::milliseconds> automatic_exit,
+    const render::RenderFrame& render_frame,
     const render::RendererBackend backend) {
     try {
         std::cout << "Trying renderer: "
@@ -142,6 +141,7 @@ namespace {
         const core::RunConfiguration run{
             .automatic_exit_after = automatic_exit,
             .idle_sleep = std::chrono::milliseconds{8},
+            .render_frame = render_frame,
         };
 
         core::Application application{
@@ -163,30 +163,24 @@ namespace {
 
 int run_desktop_application(
     const DesktopApplicationSpecification& specification,
-    const int argument_count,
-    char* argument_values[]) {
+    render::RenderFrame render_frame,
+    const std::span<const std::string_view> arguments) {
     try {
-        std::vector<std::string_view> arguments;
-        if (argument_count > 1) {
-            arguments.reserve(static_cast<std::size_t>(argument_count - 1));
-        }
-        for (int index = 1; index < argument_count; ++index) {
-            arguments.emplace_back(argument_values[index]);
-        }
+        render::validate_render_frame(render_frame);
         const selection_detail::DesktopCommandLine command_line =
             selection_detail::parse_command_line(arguments);
 
-        std::cout
-            << "Starting Game_EX " << role_name(specification.role)
-            << " with world format "
-            << world_format::current_major_version << '.'
-            << world_format::current_minor_version << '\n';
+        std::cout << "Starting Game_EX " << role_name(specification.role) << '\n';
 
         return selection_detail::execute_renderer_selection(
             command_line.renderer,
-            [&specification, &command_line](const render::RendererBackend backend) {
+            [&specification, &command_line, &render_frame](
+                const render::RendererBackend backend) {
                 return run_renderer_attempt(
-                    specification, command_line.automatic_exit_after, backend);
+                    specification,
+                    command_line.automatic_exit_after,
+                    render_frame,
+                    backend);
             },
             [](const selection_detail::RendererAttemptFailure& failure) {
                 std::cerr << "Automatic Vulkan attempt failed before visibility ["

@@ -157,7 +157,11 @@ target_include_directories(
         $<INSTALL_INTERFACE:include>
 )
 
-add_library(gameex_render STATIC src/render/renderer.cpp)
+add_library(
+    gameex_render STATIC
+    src/render/diagnostic_raster_layout.cpp
+    src/render/renderer.cpp
+)
 add_library(GameEX::Render ALIAS gameex_render)
 
 target_compile_features(gameex_render PUBLIC cxx_std_20)
@@ -166,6 +170,8 @@ target_include_directories(
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 target_link_libraries(gameex_render PUBLIC GameEX::Platform)
 gameex_engine_enable_warnings(gameex_render)
@@ -290,6 +296,18 @@ if(BUILD_TESTING)
     target_link_libraries(gameex_render_tests PRIVATE GameEX::Render)
     gameex_engine_enable_warnings(gameex_render_tests)
 
+    add_executable(
+        gameex_diagnostic_raster_layout_tests
+        tests/diagnostic_raster_layout_tests.cpp
+    )
+    target_compile_features(gameex_diagnostic_raster_layout_tests PRIVATE cxx_std_20)
+    target_include_directories(
+        gameex_diagnostic_raster_layout_tests
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(gameex_diagnostic_raster_layout_tests PRIVATE GameEX::Render)
+    gameex_engine_enable_warnings(gameex_diagnostic_raster_layout_tests)
+
     add_executable(gameex_application_render_tests tests/application_render_tests.cpp)
     target_compile_features(gameex_application_render_tests PRIVATE cxx_std_20)
     target_link_libraries(gameex_application_render_tests PRIVATE GameEX::Core)
@@ -346,6 +364,12 @@ if(BUILD_TESTING)
 
     add_test(NAME engine.render_api COMMAND gameex_render_tests)
     set_tests_properties(engine.render_api PROPERTIES LABELS "unit")
+
+    add_test(
+        NAME engine.diagnostic_raster_layout
+        COMMAND gameex_diagnostic_raster_layout_tests
+    )
+    set_tests_properties(engine.diagnostic_raster_layout PROPERTIES LABELS "unit")
 
     add_test(NAME engine.application_render_lifecycle COMMAND gameex_application_render_tests)
     set_tests_properties(engine.application_render_lifecycle PROPERTIES LABELS "unit")

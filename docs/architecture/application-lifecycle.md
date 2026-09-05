@@ -1,11 +1,16 @@
 # Application lifecycle
 
-The application owns a fresh platform, hidden window, renderer, bounded worker
-pool, and startup graph for one run. Renderer selection occurs outside this
-object so each automatic attempt can be a completely new composition.
+The application owns a fresh platform, hidden window, renderer, immutable
+`RenderFrame`, bounded worker pool, and startup graph for one run. Renderer
+selection occurs outside this object so each automatic attempt can be a
+completely new composition. Editor package loading and terrain-to-raster mapping
+occur even earlier, before any attempt is allowed to create a platform.
 
 ```text
-parse --renderer (default auto)
+editor only: parse --world, verify package, build owning RenderFrame
+        |
+        v
+parse --renderer (default auto) and validate RenderFrame
         |
         v
 create fresh SDL Platform
@@ -17,7 +22,7 @@ create hidden backend-capable Window and dormant Renderer
 Application::run
   | validate startup graph
   | start renderer
-  | attempt shared diagnostic presentation while hidden
+  | attempt the owned diagnostic presentation while hidden
   | show window (even if zero extent deferred the hidden attempt)
   | pump events, render, and briefly pace
   | timed smoke requires at least one real presentation
@@ -37,12 +42,20 @@ render.backend --> platform.window.visibility
 ```
 
 The renderer subsystem starts native API state and makes one hidden presentation
-attempt. `FramePresentationResult::deferred_zero_extent` is allowed because some
-window systems do not provide drawable pixels before visibility. The dependent
-visibility subsystem then calls `Window::show()` and records monotonic
-`Application::reached_window_visibility()` evidence. The event loop keeps
-presenting the same `foundation_diagnostic_frame()`. A timed run succeeds only
-after a renderer reports `presented`; timer survival alone is not evidence.
+attempt using the `RunConfiguration`-owned frame. `FramePresentationResult::deferred_zero_extent`
+is allowed because some window systems do not provide drawable pixels before
+visibility. The dependent visibility subsystem then calls `Window::show()` and
+records monotonic `Application::reached_window_visibility()` evidence. The event
+loop keeps presenting the same immutable frame: the game supplies the foundation
+background, while the editor may supply a package-derived raster. A timed run
+succeeds only after a renderer reports `presented`; timer survival alone is not
+evidence.
+
+Frame storage is copied into each fresh attempt and moved into `Application`.
+This intentionally trades a bounded allocation for unambiguous lifetime: the
+hidden subsystem and loop never borrow editor-owned vectors that could disappear
+between automatic Vulkan and OpenGL compositions. Both the common runner and
+Application validate the complete frame before it reaches native renderer work.
 
 Normal reverse shutdown hides the window before releasing graphics state. If a
 runtime operation throws, the graph still attempts the same reverse cleanup and

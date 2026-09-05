@@ -17,5 +17,6 @@ Statuses are `Proposed`, `Accepted`, `Superseded`, or `Rejected`. Accepted recor
 - [0009 — Portable terrain stage and package](0009-portable-terrain-stage-and-package.md) — Accepted
 - [0010 — Shared Render API and OpenGL foundation](0010-shared-render-api-opengl-foundation.md) — Accepted
 - [0011 — Vulkan transfer-clear backend and renderer selection](0011-vulkan-transfer-clear-and-renderer-selection.md) — Accepted
+- [0012 — Bounded shaderless world-raster inspection](0012-bounded-shaderless-world-raster-inspection.md) — Accepted
 
 Use [the template](0000-template.md) for the next decision.

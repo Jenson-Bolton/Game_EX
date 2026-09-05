@@ -6,6 +6,7 @@
 #include "game_ex/render/opengl_renderer.hpp"
 
 #include "platform/sdl/sdl_window_access.hpp"
+#include "render/diagnostic_raster_layout.hpp"
 
 #include <glad/gl.h>
 #include <SDL3/SDL.h>
@@ -39,14 +40,16 @@ constexpr std::uint32_t required_minor_version{6U};
 
 /**
  * @brief Checks every loaded OpenGL procedure invoked by this renderer slice.
- * @return True when diagnostics, sRGB setup, viewport, clear, and error calls are safe.
+ * @return True when diagnostics, sRGB, viewport, scissor, clear, and error calls are safe.
  */
 [[nodiscard]] bool required_open_gl_procedures_loaded() noexcept {
     return glad_glGetError != nullptr
         && glad_glGetIntegerv != nullptr
         && glad_glGetString != nullptr
+        && glad_glDisable != nullptr
         && glad_glEnable != nullptr
         && glad_glIsEnabled != nullptr
+        && glad_glScissor != nullptr
         && glad_glViewport != nullptr
         && glad_glClearColor != nullptr
         && glad_glClear != nullptr;
@@ -296,10 +299,10 @@ public:
 
     /** @copydoc game_ex::render::Renderer::render_frame */
     [[nodiscard]] FramePresentationResult render_frame(
-        const DiagnosticFrame& frame) override {
+        const RenderFrame& frame) override {
         require_creator_thread("render a frame");
         require_state(RendererLifecycleState::running, "render a frame");
-        validate_diagnostic_frame(frame);
+        validate_render_frame(frame);
 
         try {
             if (!SDL_GL_MakeCurrent(&window_, context_)) {
@@ -327,15 +330,47 @@ public:
             }
 
             glViewport(0, 0, pixel_width, pixel_height);
-            glClearColor(frame.red, frame.green, frame.blue, frame.alpha);
+            glDisable(GL_SCISSOR_TEST);
+            glClearColor(
+                frame.background.red,
+                frame.background.green,
+                frame.background.blue,
+                frame.background.alpha);
             glClear(GL_COLOR_BUFFER_BIT);
 
+            if (frame.raster.has_value()) {
+                const DiagnosticRaster& raster = frame.raster.value();
+                const detail::DiagnosticRasterLayout layout =
+                    detail::layout_diagnostic_raster(
+                        raster,
+                        static_cast<std::uint32_t>(pixel_width),
+                        static_cast<std::uint32_t>(pixel_height));
+
+                glEnable(GL_SCISSOR_TEST);
+                for (const detail::DiagnosticRasterRectangle& rectangle : layout.cells) {
+                    const DiagnosticFrame& colour =
+                        raster.linear_colours[rectangle.colour_index];
+                    glScissor(
+                        static_cast<GLint>(rectangle.x),
+                        static_cast<GLint>(rectangle.y),
+                        static_cast<GLsizei>(rectangle.width),
+                        static_cast<GLsizei>(rectangle.height));
+                    glClearColor(colour.red, colour.green, colour.blue, colour.alpha);
+                    glClear(GL_COLOR_BUFFER_BIT);
+                }
+                glDisable(GL_SCISSOR_TEST);
+            }
+
+            const GLboolean scissor_enabled = glIsEnabled(GL_SCISSOR_TEST);
             const GLenum frame_error = glGetError();
-            if (frame_error != GL_NO_ERROR) {
+            if (frame_error != GL_NO_ERROR || scissor_enabled != GL_FALSE) {
                 throw RendererError{
                     RendererErrorCode::presentation_failed,
                     RendererBackend::open_gl,
-                    "OpenGL clear failed: " + open_gl_error_text(frame_error)};
+                    frame_error != GL_NO_ERROR
+                        ? "OpenGL diagnostic raster clear failed: "
+                            + open_gl_error_text(frame_error)
+                        : "OpenGL diagnostic raster did not restore scissor state"};
             }
 
             if (!SDL_GL_SwapWindow(&window_)) {
@@ -345,6 +380,16 @@ public:
             }
 
             ++diagnostics_.presented_frames;
+            if (frame.raster.has_value()) {
+                diagnostics_.last_presented_raster_columns = frame.raster->columns;
+                diagnostics_.last_presented_raster_rows = frame.raster->rows;
+                diagnostics_.last_presented_raster_cell_count =
+                    static_cast<std::uint64_t>(frame.raster->linear_colours.size());
+            } else {
+                diagnostics_.last_presented_raster_columns = 0U;
+                diagnostics_.last_presented_raster_rows = 0U;
+                diagnostics_.last_presented_raster_cell_count = 0U;
+            }
             return FramePresentationResult::presented;
         } catch (...) {
             state_.store(RendererLifecycleState::failed, std::memory_order_release);

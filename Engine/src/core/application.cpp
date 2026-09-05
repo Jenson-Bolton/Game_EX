@@ -29,17 +29,19 @@ public:
     /**
      * @brief Binds the subsystem to an Application-owned renderer.
      * @param renderer Renderer that outlives this startup graph entry.
+     * @param frame Immutable presentation that outlives this startup graph entry.
      * @param presented_frames Application-owned successful presentation count.
      */
     RendererSubsystem(
         render::Renderer& renderer,
+        const render::RenderFrame& frame,
         std::uint64_t& presented_frames) noexcept
-        : renderer_(renderer), presented_frames_(presented_frames) {}
+        : renderer_(renderer), frame_(frame), presented_frames_(presented_frames) {}
 
     /** @copydoc game_ex::startup::Subsystem::start */
     void start() override {
         renderer_.start();
-        if (renderer_.render_frame(render::foundation_diagnostic_frame())
+        if (renderer_.render_frame(frame_)
             == render::FramePresentationResult::presented) {
             ++presented_frames_;
         }
@@ -53,6 +55,9 @@ public:
 private:
     /** Renderer owned by the containing Application. */
     render::Renderer& renderer_;
+
+    /** Immutable presentation owned by the containing Application. */
+    const render::RenderFrame& frame_;
 
     /** Successful presentation count owned by the containing Application. */
     std::uint64_t& presented_frames_;
@@ -99,7 +104,7 @@ Application::Application(
     const platform::WindowSpecification& window,
     const render::RendererFactory& renderer_factory,
     RunConfiguration run)
-    : platform_(std::move(platform)), run_configuration_(run) {
+    : platform_(std::move(platform)), run_configuration_(std::move(run)) {
     if (!platform_) {
         throw std::invalid_argument("Application requires a platform runtime");
     }
@@ -112,6 +117,8 @@ Application::Application(
         && run_configuration_.automatic_exit_after.value() < std::chrono::milliseconds::zero()) {
         throw std::invalid_argument("Application automatic exit duration cannot be negative");
     }
+
+    render::validate_render_frame(run_configuration_.render_frame);
 
     platform::WindowSpecification renderer_window = window;
     const platform::WindowGraphicsApi required_api = renderer_factory.required_window_api();
@@ -147,7 +154,8 @@ Application::Application(
     startup_graph_.add({
         std::string{renderer_subsystem_id},
         {},
-        std::make_unique<RendererSubsystem>(*renderer_, presented_frames_),
+        std::make_unique<RendererSubsystem>(
+            *renderer_, run_configuration_.render_frame, presented_frames_),
         startup::StartupAffinity::main_thread});
     startup_graph_.add({
         std::string{window_visibility_subsystem_id},
@@ -173,7 +181,7 @@ int Application::run() {
                 }
             }
 
-            if (renderer_->render_frame(render::foundation_diagnostic_frame())
+            if (renderer_->render_frame(run_configuration_.render_frame)
                 == render::FramePresentationResult::presented) {
                 ++presented_frames_;
             }

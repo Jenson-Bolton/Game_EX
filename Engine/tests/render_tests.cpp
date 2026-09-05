@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace {
 
@@ -139,6 +140,109 @@ bool test_frame_validation() {
     return passed;
 }
 
+/**
+ * @brief Verifies owning raster and complete presentation validation.
+ * @return True when dimensions, aspect, storage, and colours are checked strictly.
+ */
+bool test_raster_and_render_frame_validation() {
+    using game_ex::render::DiagnosticFrame;
+    using game_ex::render::DiagnosticRaster;
+    using game_ex::render::RenderFrame;
+
+    bool passed = true;
+    const DiagnosticRaster one_cell{
+        .columns = 1U,
+        .rows = 1U,
+        .display_aspect_ratio = 1.0F,
+        .linear_colours = {{0.0F, 1.0F, 0.5F, 1.0F}},
+    };
+    game_ex::render::validate_diagnostic_raster(one_cell);
+    game_ex::render::validate_render_frame({
+        .background = {0.1F, 0.2F, 0.3F, 1.0F},
+        .raster = one_cell,
+    });
+
+    const auto foundation = game_ex::render::foundation_render_frame();
+    game_ex::render::validate_render_frame(foundation);
+    passed &= check(
+        foundation.background.red == 0.035F
+            && foundation.background.green == 0.065F
+            && foundation.background.blue == 0.110F
+            && foundation.background.alpha == 1.0F
+            && !foundation.raster.has_value(),
+        "foundation presentation wraps the legacy colour without a raster");
+
+    const DiagnosticRaster maximum_raster{
+        .columns = game_ex::render::maximum_diagnostic_raster_dimension,
+        .rows = game_ex::render::maximum_diagnostic_raster_dimension,
+        .display_aspect_ratio = 2.0F,
+        .linear_colours = std::vector<DiagnosticFrame>(
+            static_cast<std::size_t>(game_ex::render::maximum_diagnostic_raster_cells),
+            {0.25F, 0.5F, 0.75F, 1.0F}),
+    };
+    game_ex::render::validate_diagnostic_raster(maximum_raster);
+
+    for (const std::uint32_t invalid_columns : std::array{0U, 65U}) {
+        DiagnosticRaster invalid = one_cell;
+        invalid.columns = invalid_columns;
+        passed &= check(
+            throws_exception<std::invalid_argument>([&invalid] {
+                game_ex::render::validate_diagnostic_raster(invalid);
+            }),
+            "raster column count outside [1, 64] is rejected");
+    }
+    for (const std::uint32_t invalid_rows : std::array{0U, 65U}) {
+        DiagnosticRaster invalid = one_cell;
+        invalid.rows = invalid_rows;
+        passed &= check(
+            throws_exception<std::invalid_argument>([&invalid] {
+                game_ex::render::validate_diagnostic_raster(invalid);
+            }),
+            "raster row count outside [1, 64] is rejected");
+    }
+
+    DiagnosticRaster wrong_count = one_cell;
+    wrong_count.linear_colours.clear();
+    passed &= check(
+        throws_exception<std::invalid_argument>([&wrong_count] {
+            game_ex::render::validate_diagnostic_raster(wrong_count);
+        }),
+        "raster colour storage must equal columns times rows");
+
+    const std::array invalid_aspects{
+        0.0F,
+        -1.0F,
+        std::numeric_limits<float>::infinity(),
+        std::numeric_limits<float>::quiet_NaN(),
+    };
+    for (const float invalid_aspect : invalid_aspects) {
+        DiagnosticRaster invalid = one_cell;
+        invalid.display_aspect_ratio = invalid_aspect;
+        passed &= check(
+            throws_exception<std::invalid_argument>([&invalid] {
+                game_ex::render::validate_diagnostic_raster(invalid);
+            }),
+            "non-positive or non-finite raster aspect is rejected");
+    }
+
+    DiagnosticRaster invalid_cell = one_cell;
+    invalid_cell.linear_colours.front().blue = 1.01F;
+    passed &= check(
+        throws_exception<std::invalid_argument>([&invalid_cell] {
+            game_ex::render::validate_diagnostic_raster(invalid_cell);
+        }),
+        "invalid raster colour component is rejected");
+
+    RenderFrame invalid_background = game_ex::render::foundation_render_frame();
+    invalid_background.background.alpha = -0.01F;
+    passed &= check(
+        throws_exception<std::invalid_argument>([&invalid_background] {
+            game_ex::render::validate_render_frame(invalid_background);
+        }),
+        "invalid complete-frame background is rejected");
+    return passed;
+}
+
 } // namespace
 
 /**
@@ -149,5 +253,6 @@ int main() {
     bool passed = true;
     passed &= test_diagnostic_values();
     passed &= test_frame_validation();
+    passed &= test_raster_and_render_frame_validation();
     return passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }

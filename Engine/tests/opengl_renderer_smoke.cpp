@@ -10,6 +10,7 @@
 #include <exception>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -55,7 +56,7 @@ bool run_smoke() {
         "new OpenGL renderer is dormant");
     try {
         static_cast<void>(renderer->render_frame(
-            game_ex::render::foundation_diagnostic_frame()));
+            game_ex::render::foundation_render_frame()));
         passed &= check(false, "render before start is rejected");
     } catch (const game_ex::render::RendererError& error) {
         passed &= check(
@@ -86,23 +87,55 @@ bool run_smoke() {
 
     try {
         static_cast<void>(renderer->render_frame({
-            std::numeric_limits<float>::quiet_NaN(),
-            0.0F,
-            0.0F,
-            1.0F}));
+            .background = {
+                std::numeric_limits<float>::quiet_NaN(),
+                0.0F,
+                0.0F,
+                1.0F},
+            .raster = std::nullopt,
+        }));
         passed &= check(false, "non-finite real-backend frame is rejected");
     } catch (const std::invalid_argument&) {
         passed &= check(true, "non-finite real-backend frame is rejected");
     }
 
     static_cast<void>(renderer->render_frame(
-        game_ex::render::foundation_diagnostic_frame()));
+        game_ex::render::foundation_render_frame()));
     window->show();
+    const game_ex::render::RenderFrame raster_frame{
+        .background = {0.02F, 0.02F, 0.02F, 1.0F},
+        .raster = game_ex::render::DiagnosticRaster{
+            .columns = 3U,
+            .rows = 2U,
+            .display_aspect_ratio = 1.5F,
+            .linear_colours = {
+                {1.0F, 0.0F, 0.0F, 1.0F},
+                {0.0F, 1.0F, 0.0F, 1.0F},
+                {0.0F, 0.0F, 1.0F, 1.0F},
+                {0.0F, 1.0F, 1.0F, 1.0F},
+                {1.0F, 0.0F, 1.0F, 1.0F},
+                {1.0F, 1.0F, 0.0F, 1.0F},
+            },
+        },
+    };
     const auto visible_result = renderer->render_frame(
-        game_ex::render::foundation_diagnostic_frame());
+        raster_frame);
     passed &= check(
         visible_result == game_ex::render::FramePresentationResult::presented,
-        "OpenGL presents after the window becomes visible");
+        "OpenGL presents an aspect-fitted raster after the window becomes visible");
+    passed &= check(
+        diagnostics.last_presented_raster_columns == 3U
+            && diagnostics.last_presented_raster_rows == 2U
+            && diagnostics.last_presented_raster_cell_count == 6U,
+        "OpenGL diagnostics retain the last presented logical raster dimensions");
+
+    static_cast<void>(renderer->render_frame(
+        game_ex::render::foundation_render_frame()));
+    passed &= check(
+        diagnostics.last_presented_raster_columns == 0U
+            && diagnostics.last_presented_raster_rows == 0U
+            && diagnostics.last_presented_raster_cell_count == 0U,
+        "raster-free presentation resets last-presented raster diagnostics");
     static_cast<void>(platform->pump_events());
     window->hide();
     renderer->shutdown();

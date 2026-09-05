@@ -31,6 +31,9 @@ struct RunConfiguration final {
 
     /** Simple frame-pacing sleep used by the diagnostic rendering loop. */
     std::chrono::milliseconds idle_sleep{8};
+
+    /** Owning presentation copied into Application and then reused immutably. */
+    render::RenderFrame render_frame{render::foundation_render_frame()};
 };
 
 /**
@@ -51,7 +54,7 @@ public:
      * @param platform Initialised platform runtime selected by the composition root.
      * @param window Requested window properties.
      * @param renderer_factory Concrete renderer composition selected by the caller.
-     * @param run Main-loop timing and optional smoke-test lifetime.
+     * @param run Owned presentation, main-loop timing, and optional smoke lifetime.
      * @throws std::invalid_argument if composition inputs or run are invalid.
      * @throws std::system_error if the bootstrap worker pool cannot create a thread.
      * @throws render::RendererError if native window creation or renderer setup fails.
@@ -102,6 +105,9 @@ private:
     /** Fixed bootstrap worker pool that outlives parallel startup and shutdown. */
     jobs::JobSystem job_system_;
 
+    /** Immutable main-loop configuration owned for the application's lifetime. */
+    const RunConfiguration run_configuration_;
+
     /** Owned deterministic lifecycle for application runtime subsystems. */
     startup::StartupGraph startup_graph_;
 
@@ -111,8 +117,6 @@ private:
     /** Monotonic evidence that native window visibility completed startup. */
     bool reached_window_visibility_{};
 
-    /** Main-loop configuration copied at construction. */
-    RunConfiguration run_configuration_;
 };
 
 } // namespace game_ex::core

@@ -13,21 +13,24 @@ Buildable three-project workspace, game window, world-editor window, world-forma
 
 The validated serial startup graph, [bounded JobSystem, and controlled parallel-startup contract](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) are implemented. Logging, configuration, crash reporting, wider diagnostics, profiling, and any broader frame-job model remain later work.
 
-## M2 — Rendering foundation (diagnostic parity complete; resources pending)
+## M2 — Rendering foundation (diagnostic raster parity complete; resources pending)
 
 The shared diagnostic Render API, private SDL bridge, verified OpenGL 4.6 Core
-path, Vulkan 1.3 synchronization2 transfer-clear path, strict explicit/auto
-selection, and semantic clear-frame parity are implemented. Next define only the
-shader/resource/camera/render-world extraction needed to visualise the existing
-synthetic terrain under both APIs. Captured-pixel parity, wider diagnostics, and
-maintenance1 presentation fences remain later work.
+path, Vulkan 1.3 synchronization2 transfer-clear/dynamic-rendering path, strict
+explicit/auto selection, and semantic clear/raster parity are implemented. The
+bounded shaderless raster proves package-derived colours, aspect, and orientation
+through both APIs. A scalable texture/shader resource path is still required for
+full-resolution, multi-layer, interactive, or 3D work. Captured-pixel parity,
+wider diagnostics, and maintenance1 presentation fences remain later work.
 
 ## M3 — Editor shell
 
-First load and visualise one `.gexworld` terrain/validity layer in the standalone
-editor with the same engine technologies as the game. Then select the UI approach
-and establish panels, commands, selection, undo/redo, document state, and safe
-separation of editor-only and runtime code.
+The editor can load and visualise one `.gexworld` terrain/validity layer in an
+aspect-correct 2D plan view through the same OpenGL/Vulkan technologies as the
+game. Editor-only mapping is separated from the player executable and bad
+packages fail before a window attempt. Next select the scalable viewport/UI
+approach and establish legends, picking, pan/zoom or 3D navigation, panels,
+commands, selection, undo/redo, and document state.
 
 ## M4 — World format/compiler proof (in progress)
 

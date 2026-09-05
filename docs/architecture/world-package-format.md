@@ -27,7 +27,7 @@ logical WorldPackage             internal encoder
 
 The format currently represents exactly one terrain layer containing exactly one tile. It does not represent vector features, materials, imagery, TESSERA embeddings or probabilities, multiple tiles, level of detail, compression, a spatial index, or renderer-specific data.
 
-`WorldCompiler/tests/fixtures/minimal` is a project-authored, 2-by-2 synthetic contract fixture. It uses negative EPSG:5514-style coordinates, a non-zero vertical origin, and four hand-written height/mask values. It is not real terrain and has no DMR 5G, TESSERA, or other external-source adapter behind it. Its original-source record is deliberately labelled synthetic, and its rights statement does not grant external reuse rights. The world editor and game do not yet load or visualise this package in `v0.1.4`.
+`WorldCompiler/tests/fixtures/minimal` is a project-authored, 2-by-2 synthetic contract fixture. It uses negative EPSG:5514-style coordinates, a non-zero vertical origin, and four hand-written height/mask values. It is not real terrain and has no DMR 5G, TESSERA, or other external-source adapter behind it. Its original-source record is deliberately labelled synthetic, and its rights statement does not grant external reuse rights. Since `v0.1.7`, the world editor can load this package through `GameEX::WorldFormat` and display a bounded diagnostic plan view; the game deliberately remains independent of world-package reading. That consumer integration does not change the `0.2` wire format specified here.
 
 ## Staging manifest version 1 (`.gexstage`)
 

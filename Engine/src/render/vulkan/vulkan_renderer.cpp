@@ -1,11 +1,12 @@
 /**
  * @file vulkan_renderer.cpp
- * @brief SDL/Vulkan 1.3 transfer-clear renderer implementation.
+ * @brief SDL/Vulkan 1.3 diagnostic-frame renderer implementation.
  */
 
 #include "game_ex/render/vulkan_renderer.hpp"
 
 #include "platform/sdl/sdl_window_access.hpp"
+#include "render/diagnostic_raster_layout.hpp"
 #include "vulkan_policy.hpp"
 
 #include <SDL3/SDL_error.h>
@@ -52,6 +53,14 @@ constexpr std::string_view portability_subset_extension_name{"VK_KHR_portability
 
 /** Maximum attempts made when a Vulkan enumeration changes concurrently. */
 constexpr int maximum_enumeration_attempts{8};
+
+/** Image uses required by both clear-only and raster presentations. */
+constexpr VkImageUsageFlags required_swapchain_image_usage{
+    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+
+/** Optimal-image features required by both diagnostic presentation paths. */
+constexpr VkFormatFeatureFlags required_swapchain_format_features{
+    VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT};
 
 /**
  * @brief Converts a Vulkan result into stable diagnostic text.
@@ -274,6 +283,20 @@ enumerate_values(Enumerator&& enumerate, const std::string_view operation,
 }
 
 /**
+ * @brief Converts one validated linear colour to Vulkan clear storage.
+ * @param colour Backend-neutral linear RGBA colour.
+ * @return Vulkan floating-point clear colour.
+ */
+[[nodiscard]] VkClearColorValue vulkan_clear_colour(const DiagnosticFrame& colour) noexcept {
+    VkClearColorValue clear{};
+    clear.float32[0] = colour.red;
+    clear.float32[1] = colour.green;
+    clear.float32[2] = colour.blue;
+    clear.float32[3] = colour.alpha;
+    return clear;
+}
+
+/**
  * @brief Thread-safe state written by Vulkan validation callbacks.
  */
 struct ValidationState final {
@@ -349,6 +372,9 @@ struct SwapchainState final {
 
     /** Images owned by the swapchain. */
     std::vector<VkImage> images;
+
+    /** One colour-attachment view owned for each swapchain image. */
+    std::vector<VkImageView> image_views;
 
     /** Whether each image has previously reached presentation layout. */
     std::vector<bool> initialized;
@@ -443,10 +469,10 @@ public:
     }
 
     /** @copydoc game_ex::render::Renderer::render_frame */
-    [[nodiscard]] FramePresentationResult render_frame(const DiagnosticFrame& frame) override {
+    [[nodiscard]] FramePresentationResult render_frame(const RenderFrame& frame) override {
         require_creator_thread("render a frame");
         require_state(RendererLifecycleState::running, "render a frame");
-        validate_diagnostic_frame(frame);
+        validate_render_frame(frame);
         try {
             throw_if_validation_errors(RendererErrorCode::presentation_failed,
                                        "Vulkan pre-frame validation");
@@ -462,6 +488,20 @@ public:
                 if (!recreate_swapchain()) {
                     return FramePresentationResult::deferred_zero_extent;
                 }
+            }
+
+            std::optional<detail::DiagnosticRasterLayout> raster_layout;
+            if (frame.raster.has_value()) {
+                constexpr std::uint32_t maximum_render_offset{
+                    static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::max())};
+                if (swapchain_.extent.width > maximum_render_offset
+                    || swapchain_.extent.height > maximum_render_offset) {
+                    throw RendererError{
+                        RendererErrorCode::presentation_failed, RendererBackend::vulkan,
+                        "Vulkan diagnostic raster extent exceeds signed render offsets"};
+                }
+                raster_layout = detail::layout_diagnostic_raster(
+                    frame.raster.value(), swapchain_.extent.width, swapchain_.extent.height);
             }
 
             VkResult wait_result = vkWaitForFences(device_, 1U, &in_flight_fence_, VK_TRUE,
@@ -494,7 +534,7 @@ public:
                                     "Vulkan acquired an image index outside the active swapchain"};
             }
 
-            record_clear_commands(image_index, frame);
+            record_frame_commands(image_index, frame, raster_layout);
 
             const VkResult reset_fence_result = vkResetFences(device_, 1U, &in_flight_fence_);
             if (reset_fence_result != VK_SUCCESS) {
@@ -505,7 +545,9 @@ public:
             VkSemaphoreSubmitInfo wait_info{};
             wait_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
             wait_info.semaphore = image_available_semaphore_;
-            wait_info.stageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            wait_info.stageMask = raster_layout.has_value()
+                                      ? VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+                                      : VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 
             VkCommandBufferSubmitInfo command_info{};
             command_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -529,7 +571,7 @@ public:
                 vkQueueSubmit2(graphics_queue_, 1U, &submit_info, in_flight_fence_);
             if (submit_result != VK_SUCCESS) {
                 throw vulkan_error(RendererErrorCode::presentation_failed,
-                                   "Submitting the Vulkan diagnostic clear", submit_result);
+                                   "Submitting the Vulkan diagnostic frame", submit_result);
             }
             swapchain_.initialized[image_index] = true;
 
@@ -550,13 +592,23 @@ public:
             }
             if (present_result != VK_SUCCESS && present_result != VK_SUBOPTIMAL_KHR) {
                 throw vulkan_error(RendererErrorCode::presentation_failed,
-                                   "Presenting the Vulkan diagnostic clear", present_result);
+                                   "Presenting the Vulkan diagnostic frame", present_result);
             }
 
             if (acquired_suboptimal || present_result == VK_SUBOPTIMAL_KHR) {
                 swapchain_dirty_ = true;
             }
             ++diagnostics_.presented_frames;
+            if (frame.raster.has_value()) {
+                diagnostics_.last_presented_raster_columns = frame.raster->columns;
+                diagnostics_.last_presented_raster_rows = frame.raster->rows;
+                diagnostics_.last_presented_raster_cell_count =
+                    static_cast<std::uint64_t>(frame.raster->linear_colours.size());
+            } else {
+                diagnostics_.last_presented_raster_columns = 0U;
+                diagnostics_.last_presented_raster_rows = 0U;
+                diagnostics_.last_presented_raster_cell_count = 0U;
+            }
             diagnostics_.debug_error_count =
                 validation_state_.error_count.load(std::memory_order_relaxed);
             throw_if_validation_errors(RendererErrorCode::presentation_failed,
@@ -798,7 +850,7 @@ private:
     /**
      * @brief Evaluates and deterministically selects one suitable physical
      * device.
-     * @throws RendererError when no Vulkan 1.3 transfer-presentation device
+     * @throws RendererError when no Vulkan 1.3 diagnostic-presentation device
      * exists.
      */
     void choose_device() {
@@ -880,16 +932,17 @@ private:
                 surface_formats(handle, RendererErrorCode::unavailable);
             const std::vector<VkPresentModeKHR> present_modes =
                 presentation_modes(handle, RendererErrorCode::unavailable);
-            bool has_srgb_transfer_format{};
+            bool has_required_srgb_format_features{};
             try {
                 const VkSurfaceFormatKHR chosen_format =
                     vulkan_detail::choose_surface_format(formats);
                 VkFormatProperties properties{};
                 vkGetPhysicalDeviceFormatProperties(handle, chosen_format.format, &properties);
-                has_srgb_transfer_format =
-                    (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_DST_BIT) != 0U;
+                has_required_srgb_format_features =
+                    (properties.optimalTilingFeatures & required_swapchain_format_features)
+                    == required_swapchain_format_features;
             } catch (const std::invalid_argument&) {
-                has_srgb_transfer_format = false;
+                has_required_srgb_format_features = false;
             }
             const bool has_fifo =
                 std::find(present_modes.begin(), present_modes.end(), VK_PRESENT_MODE_FIFO_KHR)
@@ -908,9 +961,11 @@ private:
             device.candidate.suitable =
                 properties2.properties.apiVersion >= required_api_version
                 && features13.synchronization2 == VK_TRUE
+                && features13.dynamicRendering == VK_TRUE
                 && has_extension(extensions, VK_KHR_SWAPCHAIN_EXTENSION_NAME) && queues.has_value()
-                && !formats.empty() && has_srgb_transfer_format && has_fifo
-                && (capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) != 0U;
+                && !formats.empty() && has_required_srgb_format_features && has_fifo
+                && (capabilities.supportedUsageFlags & required_swapchain_image_usage)
+                       == required_swapchain_image_usage;
             device.handle = handle;
             device.properties = properties2.properties;
             device.queues = queues;
@@ -925,8 +980,8 @@ private:
         if (!selected_index.has_value() || selected_index.value() >= evaluated.size()) {
             throw RendererError{RendererErrorCode::unavailable, RendererBackend::vulkan,
                                 "No physical device satisfies Vulkan 1.3, synchronization2, "
-                                "sRGB FIFO transfer-destination presentation, and queue "
-                                "requirements"};
+                                "dynamic rendering, sRGB FIFO transfer/colour-attachment "
+                                "presentation, and queue requirements"};
         }
 
         const EvaluatedDevice& selected = evaluated[selected_index.value()];
@@ -961,6 +1016,7 @@ private:
         VkPhysicalDeviceVulkan13Features features13{};
         features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
         features13.synchronization2 = VK_TRUE;
+        features13.dynamicRendering = VK_TRUE;
 
         VkDeviceCreateInfo device_info{};
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1105,6 +1161,27 @@ private:
     }
 
     /**
+     * @brief Destroys one swapchain generation in dependency-safe order.
+     * @param swapchain Generation whose views, semaphores, and handle are released.
+     */
+    void destroy_swapchain_state(SwapchainState& swapchain) const noexcept {
+        for (const VkImageView view : swapchain.image_views) {
+            if (view != VK_NULL_HANDLE) {
+                vkDestroyImageView(device_, view, nullptr);
+            }
+        }
+        for (const VkSemaphore semaphore : swapchain.presentation_semaphores) {
+            if (semaphore != VK_NULL_HANDLE) {
+                vkDestroySemaphore(device_, semaphore, nullptr);
+            }
+        }
+        if (swapchain.handle != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR(device_, swapchain.handle, nullptr);
+        }
+        swapchain = {};
+    }
+
+    /**
      * @brief Transactionally creates or replaces the active swapchain generation.
      * @param error_code Failure category appropriate to the calling lifecycle
      * phase.
@@ -1133,10 +1210,11 @@ private:
             throw vulkan_error(error_code, "Querying Vulkan swapchain capabilities",
                                capabilities_result);
         }
-        if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == 0U) {
+        if ((capabilities.supportedUsageFlags & required_swapchain_image_usage)
+            != required_swapchain_image_usage) {
             throw RendererError{error_code, RendererBackend::vulkan,
-                                "Vulkan surface does not support "
-                                "transfer-destination swapchain images"};
+                                "Vulkan surface does not support transfer-destination and "
+                                "colour-attachment swapchain images"};
         }
 
         const std::vector<VkSurfaceFormatKHR> formats =
@@ -1160,6 +1238,16 @@ private:
         } catch (const std::invalid_argument& error) {
             throw RendererError{error_code, RendererBackend::vulkan, error.what()};
         }
+        VkFormatProperties selected_format_properties{};
+        vkGetPhysicalDeviceFormatProperties(physical_device_, selected_format.format,
+                                            &selected_format_properties);
+        if ((selected_format_properties.optimalTilingFeatures
+             & required_swapchain_format_features)
+            != required_swapchain_format_features) {
+            throw RendererError{error_code, RendererBackend::vulkan,
+                                "Selected Vulkan sRGB swapchain format lacks required "
+                                "transfer-destination or colour-attachment support"};
+        }
         const VkExtent2D selected_extent =
             vulkan_detail::choose_swapchain_extent(capabilities, drawable_extent);
         if (selected_extent.width == 0U || selected_extent.height == 0U) {
@@ -1178,7 +1266,7 @@ private:
         create_info.imageColorSpace = selected_format.colorSpace;
         create_info.imageExtent = selected_extent;
         create_info.imageArrayLayers = 1U;
-        create_info.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        create_info.imageUsage = required_swapchain_image_usage;
         create_info.imageSharingMode =
             separate_queues ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
         create_info.queueFamilyIndexCount = separate_queues ? 2U : 0U;
@@ -1208,6 +1296,38 @@ private:
                 throw RendererError{error_code, RendererBackend::vulkan,
                                     "Vulkan created a swapchain without images"};
             }
+            replacement.format = selected_format.format;
+            replacement.color_space = selected_format.colorSpace;
+            replacement.extent = selected_extent;
+            replacement.requested_extent = drawable_extent;
+
+            replacement.image_views.assign(replacement.images.size(), VK_NULL_HANDLE);
+            for (std::size_t index = 0U; index < replacement.images.size(); ++index) {
+                VkImageViewCreateInfo view_info{};
+                view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                view_info.image = replacement.images[index];
+                view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                view_info.format = replacement.format;
+                view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+                view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+                view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+                view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+                view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                view_info.subresourceRange.baseMipLevel = 0U;
+                view_info.subresourceRange.levelCount = 1U;
+                view_info.subresourceRange.baseArrayLayer = 0U;
+                view_info.subresourceRange.layerCount = 1U;
+
+                VkImageView created_view{VK_NULL_HANDLE};
+                const VkResult view_result =
+                    vkCreateImageView(device_, &view_info, nullptr, &created_view);
+                if (view_result != VK_SUCCESS) {
+                    throw vulkan_error(error_code,
+                                       "Creating a Vulkan swapchain image view", view_result);
+                }
+                replacement.image_views[index] = created_view;
+            }
+
             replacement.initialized.assign(replacement.images.size(), false);
             replacement.presentation_semaphores.assign(replacement.images.size(), VK_NULL_HANDLE);
             VkSemaphoreCreateInfo semaphore_info{};
@@ -1223,30 +1343,14 @@ private:
                 }
                 semaphore = created_semaphore;
             }
-            replacement.format = selected_format.format;
-            replacement.color_space = selected_format.colorSpace;
-            replacement.extent = selected_extent;
-            replacement.requested_extent = drawable_extent;
         } catch (...) {
-            for (const VkSemaphore semaphore : replacement.presentation_semaphores) {
-                if (semaphore != VK_NULL_HANDLE) {
-                    vkDestroySemaphore(device_, semaphore, nullptr);
-                }
-            }
-            vkDestroySwapchainKHR(device_, replacement.handle, nullptr);
+            destroy_swapchain_state(replacement);
             throw;
         }
 
         SwapchainState old_swapchain = std::move(swapchain_);
         swapchain_ = std::move(replacement);
-        for (const VkSemaphore semaphore : old_swapchain.presentation_semaphores) {
-            if (semaphore != VK_NULL_HANDLE) {
-                vkDestroySemaphore(device_, semaphore, nullptr);
-            }
-        }
-        if (old_swapchain.handle != VK_NULL_HANDLE) {
-            vkDestroySwapchainKHR(device_, old_swapchain.handle, nullptr);
-        }
+        destroy_swapchain_state(old_swapchain);
         swapchain_dirty_ = false;
         update_presentation_diagnostics();
         return true;
@@ -1264,27 +1368,12 @@ private:
     }
 
     /**
-     * @brief Records synchronization2 transitions and one transfer clear.
+     * @brief Records the transfer-only background clear presentation path.
      * @param image_index Active swapchain image index.
-     * @param frame Validated linear clear colour.
-     * @throws RendererError when command-buffer reset, begin, or end fails.
+     * @param background Validated linear background colour.
      */
-    void record_clear_commands(const std::uint32_t image_index, const DiagnosticFrame& frame) {
-        VkResult result = vkResetCommandBuffer(command_buffer_, 0U);
-        if (result != VK_SUCCESS) {
-            throw vulkan_error(RendererErrorCode::presentation_failed,
-                               "Resetting the Vulkan command buffer", result);
-        }
-
-        VkCommandBufferBeginInfo begin_info{};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        result = vkBeginCommandBuffer(command_buffer_, &begin_info);
-        if (result != VK_SUCCESS) {
-            throw vulkan_error(RendererErrorCode::presentation_failed,
-                               "Beginning the Vulkan command buffer", result);
-        }
-
+    void record_background_clear(const std::uint32_t image_index,
+                                 const DiagnosticFrame& background) const noexcept {
         VkImageMemoryBarrier2 to_transfer{};
         to_transfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         to_transfer.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
@@ -1310,11 +1399,7 @@ private:
         to_transfer_dependency.pImageMemoryBarriers = &to_transfer;
         vkCmdPipelineBarrier2(command_buffer_, &to_transfer_dependency);
 
-        VkClearColorValue clear{};
-        clear.float32[0] = frame.red;
-        clear.float32[1] = frame.green;
-        clear.float32[2] = frame.blue;
-        clear.float32[3] = frame.alpha;
+        const VkClearColorValue clear = vulkan_clear_colour(background);
         const VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0U, 1U, 0U, 1U};
         vkCmdClearColorImage(command_buffer_, swapchain_.images[image_index],
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear, 1U, &range);
@@ -1337,6 +1422,137 @@ private:
         to_present_dependency.imageMemoryBarrierCount = 1U;
         to_present_dependency.pImageMemoryBarriers = &to_present;
         vkCmdPipelineBarrier2(command_buffer_, &to_present_dependency);
+    }
+
+    /**
+     * @brief Records one dynamic-rendering background plus raster presentation.
+     * @param image_index Active swapchain image index.
+     * @param frame Validated background and raster colours.
+     * @param layout Shared bottom-origin integer raster layout.
+     */
+    void record_raster_clear(const std::uint32_t image_index, const RenderFrame& frame,
+                             const detail::DiagnosticRasterLayout& layout) const noexcept {
+        const VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0U, 1U, 0U, 1U};
+        VkImageMemoryBarrier2 to_attachment{};
+        to_attachment.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        to_attachment.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
+        to_attachment.srcAccessMask = VK_ACCESS_2_NONE;
+        to_attachment.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        to_attachment.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        to_attachment.oldLayout = swapchain_.initialized[image_index]
+                                      ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+                                      : VK_IMAGE_LAYOUT_UNDEFINED;
+        to_attachment.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        to_attachment.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        to_attachment.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        to_attachment.image = swapchain_.images[image_index];
+        to_attachment.subresourceRange = range;
+
+        VkDependencyInfo to_attachment_dependency{};
+        to_attachment_dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        to_attachment_dependency.imageMemoryBarrierCount = 1U;
+        to_attachment_dependency.pImageMemoryBarriers = &to_attachment;
+        vkCmdPipelineBarrier2(command_buffer_, &to_attachment_dependency);
+
+        VkClearValue background_clear{};
+        background_clear.color = vulkan_clear_colour(frame.background);
+        VkRenderingAttachmentInfo colour_attachment{};
+        colour_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colour_attachment.imageView = swapchain_.image_views[image_index];
+        colour_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colour_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colour_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colour_attachment.clearValue = background_clear;
+
+        VkRenderingInfo rendering_info{};
+        rendering_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        rendering_info.renderArea.offset = {0, 0};
+        rendering_info.renderArea.extent = swapchain_.extent;
+        rendering_info.layerCount = 1U;
+        rendering_info.colorAttachmentCount = 1U;
+        rendering_info.pColorAttachments = &colour_attachment;
+        vkCmdBeginRendering(command_buffer_, &rendering_info);
+
+        const DiagnosticRaster& raster = *frame.raster;
+        for (const detail::DiagnosticRasterRectangle& cell : layout.cells) {
+            if (cell.width == 0U || cell.height == 0U) {
+                continue;
+            }
+
+            VkClearAttachment clear_attachment{};
+            clear_attachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            clear_attachment.colorAttachment = 0U;
+            clear_attachment.clearValue.color =
+                vulkan_clear_colour(raster.linear_colours[cell.colour_index]);
+
+            // Shared row zero starts at the lower edge; Vulkan clear rectangles
+            // measure their Y offset from the upper edge of the attachment.
+            const std::uint32_t top_origin_y =
+                swapchain_.extent.height - (cell.y + cell.height);
+            VkClearRect clear_rectangle{};
+            clear_rectangle.rect.offset.x = static_cast<std::int32_t>(cell.x);
+            clear_rectangle.rect.offset.y = static_cast<std::int32_t>(top_origin_y);
+            clear_rectangle.rect.extent.width = cell.width;
+            clear_rectangle.rect.extent.height = cell.height;
+            clear_rectangle.baseArrayLayer = 0U;
+            clear_rectangle.layerCount = 1U;
+            vkCmdClearAttachments(command_buffer_, 1U, &clear_attachment, 1U,
+                                  &clear_rectangle);
+        }
+
+        vkCmdEndRendering(command_buffer_);
+
+        VkImageMemoryBarrier2 to_present{};
+        to_present.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        to_present.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        to_present.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        to_present.dstStageMask = VK_PIPELINE_STAGE_2_NONE;
+        to_present.dstAccessMask = VK_ACCESS_2_NONE;
+        to_present.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        to_present.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        to_present.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        to_present.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        to_present.image = swapchain_.images[image_index];
+        to_present.subresourceRange = range;
+
+        VkDependencyInfo to_present_dependency{};
+        to_present_dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        to_present_dependency.imageMemoryBarrierCount = 1U;
+        to_present_dependency.pImageMemoryBarriers = &to_present;
+        vkCmdPipelineBarrier2(command_buffer_, &to_present_dependency);
+    }
+
+    /**
+     * @brief Records one complete validated diagnostic frame command buffer.
+     * @param image_index Active swapchain image index.
+     * @param frame Validated background and optional diagnostic raster.
+     * @param raster_layout Layout present exactly when the frame has a raster.
+     * @throws RendererError when command-buffer reset, begin, or end fails.
+     */
+    void record_frame_commands(
+        const std::uint32_t image_index,
+        const RenderFrame& frame,
+        const std::optional<detail::DiagnosticRasterLayout>& raster_layout) {
+        VkResult result = vkResetCommandBuffer(command_buffer_, 0U);
+        if (result != VK_SUCCESS) {
+            throw vulkan_error(RendererErrorCode::presentation_failed,
+                               "Resetting the Vulkan command buffer", result);
+        }
+
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        result = vkBeginCommandBuffer(command_buffer_, &begin_info);
+        if (result != VK_SUCCESS) {
+            throw vulkan_error(RendererErrorCode::presentation_failed,
+                               "Beginning the Vulkan command buffer", result);
+        }
+
+        if (raster_layout.has_value()) {
+            record_raster_clear(image_index, frame, raster_layout.value());
+        } else {
+            record_background_clear(image_index, frame.background);
+        }
 
         result = vkEndCommandBuffer(command_buffer_);
         if (result != VK_SUCCESS) {
@@ -1384,7 +1600,8 @@ private:
             + std::to_string(swapchain_.extent.height)
             + ", images=" + std::to_string(swapchain_.images.size())
             + ", graphics-queue=" + std::to_string(queue_selection_.graphics_family)
-            + ", present-queue=" + std::to_string(queue_selection_.presentation_family);
+            + ", present-queue=" + std::to_string(queue_selection_.presentation_family)
+            + ", transfer-clear + dynamic-rendering raster";
     }
 
     /**
@@ -1412,15 +1629,7 @@ private:
     void cleanup_noexcept() noexcept {
         if (device_ != VK_NULL_HANDLE) {
             static_cast<void>(vkDeviceWaitIdle(device_));
-            if (swapchain_.handle != VK_NULL_HANDLE) {
-                for (const VkSemaphore semaphore : swapchain_.presentation_semaphores) {
-                    if (semaphore != VK_NULL_HANDLE) {
-                        vkDestroySemaphore(device_, semaphore, nullptr);
-                    }
-                }
-                vkDestroySwapchainKHR(device_, swapchain_.handle, nullptr);
-                swapchain_ = {};
-            }
+            destroy_swapchain_state(swapchain_);
             if (in_flight_fence_ != VK_NULL_HANDLE) {
                 vkDestroyFence(device_, in_flight_fence_, nullptr);
                 in_flight_fence_ = VK_NULL_HANDLE;
@@ -1509,7 +1718,7 @@ private:
     /** Logical device owning all frame resources. */
     VkDevice device_{VK_NULL_HANDLE};
 
-    /** Borrowed queue used for transfer clear submission. */
+    /** Borrowed queue used for transfer and dynamic-rendering submission. */
     VkQueue graphics_queue_{VK_NULL_HANDLE};
 
     /** Borrowed queue used for swapchain presentation. */

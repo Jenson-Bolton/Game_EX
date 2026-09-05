@@ -5,8 +5,12 @@
 
 #pragma once
 
+#include "game_ex/render/renderer.hpp"
+
 #include <cstdint>
+#include <span>
 #include <string>
+#include <string_view>
 
 namespace game_ex::game {
 
@@ -49,8 +53,9 @@ struct DesktopApplicationSpecification final {
 /**
  * @brief Composes and runs one Game_EX desktop application.
  * @param specification Application identity, role, and initial window details.
- * @param argument_count Number of entries in argument_values.
- * @param argument_values Process command-line argument array.
+ * @param render_frame Owning backend-neutral frame copied into each fresh
+ * renderer attempt.
+ * @param arguments Process arguments after the executable name.
  * @return Zero after orderly shutdown, or a non-zero value after a reported error.
  *
  * `--renderer=opengl|vulkan|auto` selects an explicit backend or the default
@@ -62,7 +67,7 @@ struct DesktopApplicationSpecification final {
  */
 int run_desktop_application(
     const DesktopApplicationSpecification& specification,
-    int argument_count,
-    char* argument_values[]);
+    render::RenderFrame render_frame,
+    std::span<const std::string_view> arguments);
 
 } // namespace game_ex::game

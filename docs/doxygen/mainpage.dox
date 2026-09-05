@@ -11,12 +11,12 @@
  * - @ref core for the minimal application lifetime;
  * - @ref platform for platform-neutral boot capabilities;
  * - @ref platform_sdl for the SDL3 backend factory;
- * - @ref render for the backend-neutral presentation contract;
- * - @ref render_opengl for the OpenGL 4.6 Core backend;
- * - @ref render_vulkan for the Vulkan 1.3 backend;
+ * - @ref render for the backend-neutral background and bounded-raster contract;
+ * - @ref render_opengl for the OpenGL 4.6 Core scissored-clear backend;
+ * - @ref render_vulkan for the Vulkan 1.3 transfer/dynamic-rendering backend;
  * - @ref world_format for the runtime world model and verified package reader;
  * - @ref world_compiler for strict offline staging validation and compilation;
- * - @ref game_app for the game and world-editor composition helper.
+ * - @ref game_app for shared desktop and editor-only world-view composition.
  *
  * Human-authored vision, scope, architecture, section, development, and decision
  * records live in the repository's `docs/` directory. Start with `docs/index.md`.
