@@ -7,6 +7,7 @@
 
 #include "game_ex/core/application.hpp"
 #include "game_ex/platform/sdl_platform.hpp"
+#include "game_ex/render/opengl_renderer.hpp"
 #include "game_ex/world_format/world_header.hpp"
 
 #include <charconv>
@@ -105,6 +106,10 @@ int run_desktop_application(
             .application_version = GAMEEX_VERSION_STRING,
             .application_identifier = specification.application_identifier,
         });
+        auto renderer_factory = render::create_opengl_renderer_factory();
+
+        std::cout << "Selected renderer: "
+                  << render::renderer_backend_name(renderer_factory->backend()) << '\n';
 
         const platform::WindowSpecification window{
             .title = specification.window_title,
@@ -118,7 +123,11 @@ int run_desktop_application(
             .idle_sleep = std::chrono::milliseconds{8},
         };
 
-        core::Application application{std::move(platform), window, run};
+        core::Application application{
+            std::move(platform),
+            window,
+            *renderer_factory,
+            run};
         return application.run();
     } catch (const std::exception& error) {
         std::cerr << "Game_EX " << role_name(specification.role)

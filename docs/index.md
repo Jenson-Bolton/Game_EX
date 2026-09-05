@@ -16,6 +16,7 @@ This directory contains human-authored project documentation. Generated code-ref
 - [Overview](architecture/overview.md)
 - [Repository boundaries](architecture/repository-boundaries.md)
 - [Application lifecycle](architecture/application-lifecycle.md)
+- [Rendering](architecture/rendering.md)
 - [Game/editor boundary](architecture/game-editor-boundary.md)
 - [World data pipeline](architecture/world-data-pipeline.md)
 - [World package format](architecture/world-package-format.md)

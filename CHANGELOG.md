@@ -6,6 +6,30 @@ All notable Game_EX changes are recorded here. Detailed implementation evidence,
 
 No changes recorded.
 
+## [0.1.5] - 2026-09-05
+
+### Added
+
+- `GameEX::Render`, a backend-neutral, ordinarily owned lifecycle for one validated linear-colour diagnostic clear frame and backend-neutral context diagnostics.
+- `GameEX::RenderOpenGL`, an SDL/OpenGL 4.6 Core backend that requests and verifies a double-buffered sRGB-capable framebuffer, loads and checks its used procedures through GLAD, queries drawable pixels, clears, presents, and checks OpenGL errors.
+- A private checked SDL native-window bridge that keeps SDL and OpenGL types out of public Engine, game, and editor headers.
+- Fake-backed lifecycle tests plus a real OpenGL GUI smoke test reporting the actual API version, profile, vendor, and device.
+- ADR 0010, a rendering architecture document, reproducible GLAD provenance, and this version report.
+
+### Changed
+
+- Both game and world editor now directly compose the same OpenGL backend and display the same dark-blue diagnostic clear frame.
+- Application startup creates and renders through the renderer before showing the window; reverse shutdown hides the window before releasing graphics state.
+- The project version is now `0.1.5`, and the Engine can be configured independently with GUI smoke registration enabled or disabled.
+
+### Limitations
+
+- This slice deliberately has no shaders, meshes, resource API, world-package visualisation, editor UI, gameplay, or simulation.
+- Vulkan 1.3 and explicit `--renderer=opengl|vulkan|auto` policy remain the next renderer slice; both applications intentionally select OpenGL directly for now.
+- OpenGL 4.6 Core and an sRGB-capable default framebuffer are hard requirements; older or headless environments must disable GUI smoke registration but cannot run the current desktop renderer.
+
+See the [`v0.1.5` technical report](docs/history/reports/v0.1.5.md).
+
 ## [0.1.4] - 2026-09-05
 
 ### Added

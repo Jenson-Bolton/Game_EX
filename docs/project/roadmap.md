@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap is directional. M0, the validated serial/controlled-parallel parts of M1, and the dependency-free package/codec portion of M4 are implemented. Later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
+This roadmap is directional. M0, the validated serial/controlled-parallel parts of M1, the OpenGL half of M2, and the dependency-free package/codec portion of M4 are implemented. Later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
 
 ## M0 — Foundation
 
@@ -10,9 +10,9 @@ Buildable three-project workspace, game window, world-editor window, world-forma
 
 The validated serial startup graph, [bounded JobSystem, and controlled parallel-startup contract](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) are implemented. Logging, configuration, crash reporting, wider diagnostics, profiling, and any broader frame-job model remain later work.
 
-## M2 — Rendering foundation
+## M2 — Rendering foundation (in progress)
 
-Specify the shared Render API/RHI boundary and backend-selection policy. Establish the OpenGL and Vulkan development environments, render the same diagnostic scene through an OpenGL context and a Vulkan swapchain, and define render-world extraction without leaking either graphics API into game or editor code.
+The shared diagnostic Render API, private SDL presentation bridge, and verified OpenGL 4.6 Core clear/present path are implemented. Next add Vulkan 1.3 and explicit selection/fallback policy, prove the same diagnostic content through both APIs, then define render-world extraction without leaking either graphics API into game or editor code.
 
 ## M3 — Editor shell
 

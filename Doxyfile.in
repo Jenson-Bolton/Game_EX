@@ -19,7 +19,7 @@ INPUT                  = "@CMAKE_SOURCE_DIR@/Engine/include" \
                          "@CMAKE_SOURCE_DIR@/docs/doxygen"
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.hpp *.cpp *.dox
-EXCLUDE_PATTERNS       = */build/* */_deps/*
+EXCLUDE_PATTERNS       = */build/* */_deps/* */third_party/*
 STRIP_FROM_PATH        = "@CMAKE_SOURCE_DIR@"
 
 EXTRACT_ALL            = NO

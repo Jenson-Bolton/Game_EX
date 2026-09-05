@@ -46,7 +46,7 @@ public:
     /**
      * @brief Creates one hidden top-level window.
      * @param specification Requested title, size, and behaviour.
-     * @return A uniquely owned platform-neutral window.
+     * @return A non-null, uniquely owned platform-neutral window.
      * @throws std::invalid_argument if the specification is invalid.
      * @throws std::logic_error if the backend cannot own another window.
      * @throws std::runtime_error if native window creation fails.

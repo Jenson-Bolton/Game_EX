@@ -15,5 +15,6 @@ Statuses are `Proposed`, `Accepted`, `Superseded`, or `Rejected`. Accepted recor
 - [0007 — Renderer baselines, selection, and parity](0007-renderer-baselines-selection-and-parity.md) — Accepted
 - [0008 — Bounded jobs and controlled parallel startup](0008-bounded-jobs-controlled-parallel-startup.md) — Accepted
 - [0009 — Portable terrain stage and package](0009-portable-terrain-stage-and-package.md) — Accepted
+- [0010 — Shared Render API and OpenGL foundation](0010-shared-render-api-opengl-foundation.md) — Accepted
 
 Use [the template](0000-template.md) for the next decision.

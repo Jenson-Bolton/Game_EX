@@ -5,6 +5,8 @@
 
 #include "game_ex/platform/sdl_platform.hpp"
 
+#include "sdl_window_access.hpp"
+
 #include <SDL3/SDL.h>
 
 #include <limits>
@@ -25,6 +27,35 @@ namespace {
 }
 
 /**
+ * @brief Sets one required OpenGL window/context attribute.
+ * @param attribute SDL attribute to configure before window creation.
+ * @param value Required integer value.
+ * @throws std::runtime_error if SDL rejects the attribute.
+ */
+void set_open_gl_attribute(const SDL_GLAttr attribute, const int value) {
+    if (!SDL_GL_SetAttribute(attribute, value)) {
+        throw sdl_error("SDL could not configure a required OpenGL attribute");
+    }
+}
+
+/**
+ * @brief Configures the process-global SDL attributes for OpenGL 4.6 Core.
+ * @throws std::runtime_error if SDL rejects a required attribute.
+ */
+void configure_open_gl_attributes() {
+    SDL_GL_ResetAttributes();
+    set_open_gl_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    set_open_gl_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    set_open_gl_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    set_open_gl_attribute(SDL_GL_DOUBLEBUFFER, 1);
+    set_open_gl_attribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+    set_open_gl_attribute(SDL_GL_RED_SIZE, 8);
+    set_open_gl_attribute(SDL_GL_GREEN_SIZE, 8);
+    set_open_gl_attribute(SDL_GL_BLUE_SIZE, 8);
+    set_open_gl_attribute(SDL_GL_ALPHA_SIZE, 8);
+}
+
+/**
  * @brief SDL3-backed top-level window with unique native ownership.
  */
 class SdlWindow final : public Window {
@@ -32,8 +63,10 @@ public:
     /**
      * @brief Adopts a successfully created SDL window.
      * @param window Native window; must not be null.
+     * @param graphics_api Presentation capability selected for this window.
      */
-    explicit SdlWindow(SDL_Window* window) noexcept : window_(window) {}
+    SdlWindow(SDL_Window* window, const WindowGraphicsApi graphics_api) noexcept
+        : window_(window), graphics_api_(graphics_api) {}
 
     /** Destroys the native window before the SDL video subsystem shuts down. */
     ~SdlWindow() override {
@@ -54,9 +87,28 @@ public:
         }
     }
 
+    /**
+     * @brief Returns the borrowed native handle for private renderer bridges.
+     * @return SDL handle owned by this adapter.
+     */
+    [[nodiscard]] SDL_Window* native_window() const noexcept {
+        return window_;
+    }
+
+    /**
+     * @brief Returns the graphics capability selected at window creation.
+     * @return Platform-neutral native graphics capability.
+     */
+    [[nodiscard]] WindowGraphicsApi graphics_api() const noexcept {
+        return graphics_api_;
+    }
+
 private:
     /** Native SDL window owned by this adapter. */
     SDL_Window* window_;
+
+    /** Graphics presentation capability fixed for the native window lifetime. */
+    WindowGraphicsApi graphics_api_;
 };
 
 /**
@@ -116,6 +168,18 @@ public:
             flags |= SDL_WINDOW_RESIZABLE;
         }
 
+        switch (specification.graphics_api) {
+        case WindowGraphicsApi::none:
+            break;
+        case WindowGraphicsApi::open_gl:
+            configure_open_gl_attributes();
+            flags |= SDL_WINDOW_OPENGL;
+            break;
+        case WindowGraphicsApi::vulkan:
+            flags |= SDL_WINDOW_VULKAN;
+            break;
+        }
+
         SDL_Window* native_window = SDL_CreateWindow(
             specification.title.c_str(),
             static_cast<int>(specification.width),
@@ -126,7 +190,7 @@ public:
         }
 
         window_created_ = true;
-        return std::make_unique<SdlWindow>(native_window);
+        return std::make_unique<SdlWindow>(native_window, specification.graphics_api);
     }
 
     /** @copydoc game_ex::platform::Platform::pump_events */
@@ -148,6 +212,21 @@ private:
 };
 
 } // namespace
+
+namespace sdl_detail {
+
+SDL_Window* native_window(
+    Window& window,
+    const WindowGraphicsApi required_api) noexcept {
+    auto* const sdl_window = dynamic_cast<SdlWindow*>(&window);
+    if (sdl_window == nullptr || sdl_window->graphics_api() != required_api) {
+        return nullptr;
+    }
+
+    return sdl_window->native_window();
+}
+
+} // namespace sdl_detail
 
 std::unique_ptr<Platform> create_sdl_platform(
     const SdlPlatformSpecification& specification) {

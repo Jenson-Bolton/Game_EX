@@ -2,13 +2,13 @@
 
 Game_EX is a new C++20 foundation for a large-world transport, city, and land-use simulation. It is intentionally split into a reusable engine, an offline world compiler/runtime world format, and the game applications.
 
-The current `v0.1.4` foundation builds on the original window milestone with deterministic startup/jobs infrastructure and the first portable world-data contract. The game and world editor each open a real SDL3 desktop window; the dependency-free WorldCompiler validates a strict staged terrain manifest, writes a deterministic `.gexworld` package, and reopens it through the same `GameEX::WorldFormat` reader intended for both applications. The committed fixture is synthetic: no external dataset or source adapter is accepted yet, and neither application visualises the package in this version. The accepted renderer direction remains one shared Render API with required [OpenGL and Vulkan backends](docs/decisions/0004-dual-renderer-backends.md).
+The current `v0.1.5` foundation combines deterministic startup/jobs infrastructure, the first portable world-data contract, and the first concrete renderer. The game and world editor each create an SDL3 window through the same shared Render API, verify an OpenGL 4.6 Core context, and present the same sRGB diagnostic clear frame. The dependency-free WorldCompiler still validates a strict staged terrain manifest, writes a deterministic `.gexworld` package, and reopens it through the runtime-only `GameEX::WorldFormat` reader. The committed terrain fixture remains synthetic and neither application visualises it yet. Vulkan 1.3 and explicit renderer selection are the next backend slice, preserving the accepted [cross-technology direction](docs/decisions/0004-dual-renderer-backends.md).
 
 ## Repository layout
 
 ```text
 Game_EX/
-|-- Engine/          Reusable engine and SDL3 platform backend
+|-- Engine/          Reusable engine, SDL3 platform, Render API, and OpenGL backend
 |-- WorldCompiler/   Runtime world format and offline compiler
 |-- Game/            Game and world-editor applications
 |-- docs/            Project, architecture, section, and development docs
@@ -20,7 +20,7 @@ The three source directories are independent CMake projects. The root project is
 
 ## Build on Windows
 
-Prerequisites are Visual Studio 2022 with Desktop C++, CMake 3.25 or newer, and Git. The first configure downloads the pinned SDL3 source release into the ignored build tree.
+Prerequisites are Visual Studio 2022 with Desktop C++, CMake 3.25 or newer, Git, and a driver exposing OpenGL 4.6 Core with an sRGB-capable default framebuffer. The first configure downloads the pinned SDL3 source release into the ignored build tree. The minimal generated GLAD 2.0.8 loader is audited and vendored, so supported builds do not require Python or Jinja.
 
 ```powershell
 cmake --preset vs2022
@@ -67,6 +67,7 @@ Read the [working agreement](docs/development/README.md), [contribution guide](C
 - [Project vision](docs/project/vision.md)
 - [Current scope and specification gate](docs/project/scope.md)
 - [Architecture overview](docs/architecture/overview.md)
+- [Rendering architecture](docs/architecture/rendering.md)
 - [World package format](docs/architecture/world-package-format.md)
 - [WorldCompiler guide](WorldCompiler/README.md)
 - [Building and testing](docs/development/building.md)

@@ -11,6 +11,26 @@
 namespace game_ex::platform {
 
 /**
+ * @brief Selects the native presentation capability required by a window.
+ *
+ * The value is deliberately API-level rather than a native handle contract.
+ * Renderer implementations obtain native details through private platform
+ * bridges, keeping SDL and graphics-API types out of public headers.
+ *
+ * @ingroup platform
+ */
+enum class WindowGraphicsApi {
+    /** The window does not need a graphics presentation surface. */
+    none,
+
+    /** The window must support an OpenGL context. */
+    open_gl,
+
+    /** The window must support a Vulkan presentation surface. */
+    vulkan
+};
+
+/**
  * @brief Describes a top-level application window before it is created.
  *
  * The dimensions are expressed in window coordinates rather than framebuffer
@@ -31,6 +51,9 @@ struct WindowSpecification final {
 
     /** Whether the user may resize the window. */
     bool resizable{true};
+
+    /** Native graphics capability required by the selected renderer. */
+    WindowGraphicsApi graphics_api{WindowGraphicsApi::none};
 };
 
 /**

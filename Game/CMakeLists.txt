@@ -56,6 +56,7 @@ target_link_libraries(
     PRIVATE
         GameEX::Core
         GameEX::PlatformSDL
+        GameEX::RenderOpenGL
         GameEX::WorldFormat
 )
 gameex_apply_version(gameex_game_app)

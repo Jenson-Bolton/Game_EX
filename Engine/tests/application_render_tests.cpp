@@ -1,0 +1,533 @@
+/**
+ * @file application_render_tests.cpp
+ * @brief Fake-backed tests for Application renderer lifecycle ordering.
+ */
+
+#include "game_ex/core/application.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace {
+
+using game_ex::platform::EventPumpResult;
+using game_ex::platform::Platform;
+using game_ex::platform::Window;
+using game_ex::platform::WindowGraphicsApi;
+using game_ex::platform::WindowSpecification;
+using game_ex::render::DiagnosticFrame;
+using game_ex::render::Renderer;
+using game_ex::render::RendererBackend;
+using game_ex::render::RendererDiagnostics;
+using game_ex::render::RendererFactory;
+using game_ex::render::RendererLifecycleState;
+
+/**
+ * @brief Mutable evidence and failure controls shared by fake objects.
+ */
+struct TestState final {
+    /** Ordered composition, lifecycle, and destruction events. */
+    std::vector<std::string> events;
+
+    /** Graphics API copied into the platform window request. */
+    WindowGraphicsApi requested_api{WindowGraphicsApi::none};
+
+    /** Number of frames accepted by the fake renderer. */
+    int rendered_frames{};
+
+    /** Number of event-pump calls made by Application. */
+    int pump_calls{};
+
+    /** When true, renderer startup fails after entering failed state. */
+    bool fail_start{};
+
+    /** One-based frame number that raises a runtime failure, or zero for none. */
+    int fail_frame{};
+
+    /** When true, the factory violates its non-null result contract. */
+    bool return_null_renderer{};
+
+    /** When true, the platform violates its non-null result contract. */
+    bool return_null_window{};
+
+    /** Backend reported by the returned renderer. */
+    RendererBackend returned_backend{RendererBackend::open_gl};
+};
+
+/**
+ * @brief Reports one failed assertion without aborting the test executable.
+ * @param condition Assertion result.
+ * @param description Human-readable invariant.
+ * @return True when the assertion passed.
+ */
+bool check(const bool condition, const std::string& description) {
+    if (!condition) {
+        std::cerr << "FAILED: " << description << '\n';
+    }
+    return condition;
+}
+
+/**
+ * @brief Tests whether invoking a callable raises a selected exception type.
+ * @tparam Exception Expected exception base or exact type.
+ * @tparam Callable Nullary callable type.
+ * @param callable Operation under test.
+ * @return True only when the selected exception type was caught.
+ */
+template <typename Exception, typename Callable>
+bool throws_exception(Callable&& callable) {
+    try {
+        std::invoke(std::forward<Callable>(callable));
+    } catch (const Exception&) {
+        return true;
+    } catch (...) {
+        return false;
+    }
+    return false;
+}
+
+/**
+ * @brief Platform-neutral fake window that records visibility and destruction.
+ */
+class FakeWindow final : public Window {
+public:
+    /**
+     * @brief Binds the window to shared test evidence.
+     * @param state Evidence object that outlives this window.
+     */
+    explicit FakeWindow(std::shared_ptr<TestState> state) noexcept
+        : state_(std::move(state)) {}
+
+    /** Records that renderer destruction must already have occurred. */
+    ~FakeWindow() override {
+        state_->events.emplace_back("window.destroy");
+    }
+
+    /** @copydoc game_ex::platform::Window::show */
+    void show() override {
+        state_->events.emplace_back("window.show");
+    }
+
+    /** @copydoc game_ex::platform::Window::hide */
+    void hide() override {
+        state_->events.emplace_back("window.hide");
+    }
+
+private:
+    /** Shared evidence that outlives all fake runtime objects. */
+    std::shared_ptr<TestState> state_;
+};
+
+/**
+ * @brief Fake platform that captures requested graphics capability and events.
+ */
+class FakePlatform final : public Platform {
+public:
+    /**
+     * @brief Binds the platform to shared test evidence.
+     * @param state Evidence object that outlives this platform.
+     */
+    explicit FakePlatform(std::shared_ptr<TestState> state) noexcept
+        : state_(std::move(state)) {}
+
+    /** Records final platform destruction after the window. */
+    ~FakePlatform() override {
+        state_->events.emplace_back("platform.destroy");
+    }
+
+    /** @copydoc game_ex::platform::Platform::create_window */
+    [[nodiscard]] std::unique_ptr<Window> create_window(
+        const WindowSpecification& specification) override {
+        state_->events.emplace_back("platform.create_window");
+        state_->requested_api = specification.graphics_api;
+        if (state_->return_null_window) {
+            return nullptr;
+        }
+        return std::make_unique<FakeWindow>(state_);
+    }
+
+    /** @copydoc game_ex::platform::Platform::pump_events */
+    [[nodiscard]] EventPumpResult pump_events() override {
+        state_->events.emplace_back("platform.pump_events");
+        ++state_->pump_calls;
+        return state_->pump_calls == 1
+            ? EventPumpResult::continue_running
+            : EventPumpResult::exit_requested;
+    }
+
+private:
+    /** Shared evidence that outlives all fake runtime objects. */
+    std::shared_ptr<TestState> state_;
+};
+
+/**
+ * @brief Fake renderer with controllable startup and frame failures.
+ */
+class FakeRenderer final : public Renderer {
+public:
+    /**
+     * @brief Binds the renderer to shared test evidence.
+     * @param state Evidence object that outlives this renderer.
+     */
+    explicit FakeRenderer(std::shared_ptr<TestState> state) noexcept
+        : state_(std::move(state)) {
+        diagnostics_.backend = state_->returned_backend;
+        diagnostics_.api_major = 4U;
+        diagnostics_.api_minor = 6U;
+        diagnostics_.api_patch = 0U;
+        diagnostics_.profile = "test";
+        diagnostics_.api_version = "test 4.6";
+        diagnostics_.vendor = "Game_EX tests";
+        diagnostics_.device = "fake renderer";
+    }
+
+    /** Records renderer destruction before its borrowed window. */
+    ~FakeRenderer() override {
+        state_->events.emplace_back("renderer.destroy");
+    }
+
+    /** @copydoc game_ex::render::Renderer::backend */
+    [[nodiscard]] RendererBackend backend() const noexcept override {
+        return state_->returned_backend;
+    }
+
+    /** @copydoc game_ex::render::Renderer::state */
+    [[nodiscard]] RendererLifecycleState state() const noexcept override {
+        return lifecycle_state_;
+    }
+
+    /** @copydoc game_ex::render::Renderer::start */
+    void start() override {
+        state_->events.emplace_back("renderer.start");
+        lifecycle_state_ = RendererLifecycleState::starting;
+        if (state_->fail_start) {
+            lifecycle_state_ = RendererLifecycleState::failed;
+            throw std::runtime_error("injected renderer start failure");
+        }
+        lifecycle_state_ = RendererLifecycleState::running;
+    }
+
+    /** @copydoc game_ex::render::Renderer::render_frame */
+    void render_frame(const DiagnosticFrame& frame) override {
+        game_ex::render::validate_diagnostic_frame(frame);
+        state_->events.emplace_back("renderer.frame");
+        ++state_->rendered_frames;
+        if (state_->fail_frame == state_->rendered_frames) {
+            throw std::runtime_error("injected renderer frame failure");
+        }
+    }
+
+    /** @copydoc game_ex::render::Renderer::diagnostics */
+    [[nodiscard]] const RendererDiagnostics& diagnostics() const override {
+        return diagnostics_;
+    }
+
+    /** @copydoc game_ex::render::Renderer::shutdown */
+    void shutdown() override {
+        state_->events.emplace_back("renderer.shutdown");
+        lifecycle_state_ = RendererLifecycleState::stopped;
+    }
+
+private:
+    /** Shared evidence that outlives all fake runtime objects. */
+    std::shared_ptr<TestState> state_;
+
+    /** Fake lifecycle state used by the public observer. */
+    RendererLifecycleState lifecycle_state_{RendererLifecycleState::dormant};
+
+    /** Stable fake diagnostic values. */
+    RendererDiagnostics diagnostics_{};
+};
+
+/**
+ * @brief Fake renderer factory used as Application's short-lived composition input.
+ */
+class FakeRendererFactory final : public RendererFactory {
+public:
+    /**
+     * @brief Binds the factory to shared test evidence.
+     * @param state Evidence object that outlives this factory.
+     */
+    explicit FakeRendererFactory(std::shared_ptr<TestState> state) noexcept
+        : state_(std::move(state)) {}
+
+    /** @copydoc game_ex::render::RendererFactory::backend */
+    [[nodiscard]] RendererBackend backend() const noexcept override {
+        return RendererBackend::open_gl;
+    }
+
+    /** @copydoc game_ex::render::RendererFactory::required_window_api */
+    [[nodiscard]] WindowGraphicsApi required_window_api() const noexcept override {
+        return WindowGraphicsApi::open_gl;
+    }
+
+    /** @copydoc game_ex::render::RendererFactory::create */
+    [[nodiscard]] std::unique_ptr<Renderer> create(Window& window) const override {
+        static_cast<void>(window);
+        state_->events.emplace_back("factory.create_renderer");
+        if (state_->return_null_renderer) {
+            return nullptr;
+        }
+        return std::make_unique<FakeRenderer>(state_);
+    }
+
+private:
+    /** Shared evidence that outlives all fake runtime objects. */
+    std::shared_ptr<TestState> state_;
+};
+
+/**
+ * @brief Constructs the common zero-delay test run configuration.
+ * @return Configuration that executes one rendered loop iteration.
+ */
+[[nodiscard]] game_ex::core::RunConfiguration test_run_configuration() noexcept {
+    return {
+        .automatic_exit_after = std::nullopt,
+        .idle_sleep = std::chrono::milliseconds::zero(),
+    };
+}
+
+/**
+ * @brief Returns the ordinary window request used by fake-backed tests.
+ * @return Window request with renderer capability left for Application to fill.
+ */
+[[nodiscard]] WindowSpecification test_window() {
+    return {
+        .title = "renderer lifecycle test",
+        .width = 320U,
+        .height = 200U,
+        .resizable = false,
+    };
+}
+
+/**
+ * @brief Verifies startup, first frame, visibility, loop, and reverse shutdown.
+ * @return True when exact lifecycle and destruction order match the contract.
+ */
+bool test_successful_lifecycle_order() {
+    auto state = std::make_shared<TestState>();
+    FakeRendererFactory factory{state};
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state),
+            test_window(),
+            factory,
+            test_run_configuration()};
+        if (application.run() != 0) {
+            return check(false, "successful fake application returns zero");
+        }
+    }
+
+    const std::vector<std::string> expected{
+        "platform.create_window",
+        "factory.create_renderer",
+        "renderer.start",
+        "renderer.frame",
+        "window.show",
+        "platform.pump_events",
+        "renderer.frame",
+        "platform.pump_events",
+        "window.hide",
+        "renderer.shutdown",
+        "renderer.destroy",
+        "window.destroy",
+        "platform.destroy",
+    };
+
+    bool passed = check(state->events == expected, "renderer/window lifecycle order is exact");
+    passed &= check(
+        state->requested_api == WindowGraphicsApi::open_gl,
+        "Application applies the renderer factory window capability");
+    passed &= check(state->rendered_frames == 2, "startup and main loop both render a frame");
+    return passed;
+}
+
+/**
+ * @brief Verifies partially started renderer rollback precedes any window show.
+ * @return True when failure cleanup follows the startup subsystem contract.
+ */
+bool test_start_failure_rollback() {
+    auto state = std::make_shared<TestState>();
+    state->fail_start = true;
+    FakeRendererFactory factory{state};
+    bool threw = false;
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state),
+            test_window(),
+            factory,
+            test_run_configuration()};
+        threw = throws_exception<std::runtime_error>([&application] {
+            static_cast<void>(application.run());
+        });
+    }
+
+    bool passed = check(threw, "renderer startup failure reaches the caller");
+    passed &= check(
+        std::find(state->events.begin(), state->events.end(), "window.show")
+            == state->events.end(),
+        "window remains hidden when renderer startup fails");
+    passed &= check(
+        std::count(state->events.begin(), state->events.end(), "renderer.shutdown") == 1,
+        "failing renderer subsystem is rolled back exactly once");
+    return passed;
+}
+
+/**
+ * @brief Verifies an initial-frame failure rolls back the now-started renderer.
+ * @return True when the window is never shown and renderer cleanup runs.
+ */
+bool test_initial_frame_failure_rollback() {
+    auto state = std::make_shared<TestState>();
+    state->fail_frame = 1;
+    FakeRendererFactory factory{state};
+    bool threw = false;
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state),
+            test_window(),
+            factory,
+            test_run_configuration()};
+        threw = throws_exception<std::runtime_error>([&application] {
+            static_cast<void>(application.run());
+        });
+    }
+
+    bool passed = check(threw, "initial diagnostic frame failure reaches the caller");
+    passed &= check(
+        std::find(state->events.begin(), state->events.end(), "window.show")
+            == state->events.end(),
+        "window is not shown before a diagnostic frame succeeds");
+    passed &= check(
+        std::count(state->events.begin(), state->events.end(), "renderer.shutdown") == 1,
+        "initial-frame failure rolls back renderer state");
+    return passed;
+}
+
+/**
+ * @brief Verifies a frame-loop failure hides the window before renderer shutdown.
+ * @return True when runtime failure preserves reverse dependency cleanup.
+ */
+bool test_runtime_frame_failure_cleanup() {
+    auto state = std::make_shared<TestState>();
+    state->fail_frame = 2;
+    FakeRendererFactory factory{state};
+    bool threw = false;
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state),
+            test_window(),
+            factory,
+            test_run_configuration()};
+        threw = throws_exception<std::runtime_error>([&application] {
+            static_cast<void>(application.run());
+        });
+    }
+
+    const auto hide = std::find(state->events.begin(), state->events.end(), "window.hide");
+    const auto shutdown = std::find(
+        state->events.begin(), state->events.end(), "renderer.shutdown");
+    bool passed = check(threw, "runtime frame failure reaches the caller");
+    passed &= check(hide != state->events.end(), "visible window is hidden after frame failure");
+    passed &= check(shutdown != state->events.end(), "renderer shuts down after frame failure");
+    passed &= check(hide < shutdown, "window hide precedes renderer shutdown");
+    return passed;
+}
+
+/**
+ * @brief Verifies constructor checks for null, wrong-backend, and conflicting input.
+ * @return True when invalid composition never reaches application startup.
+ */
+bool test_composition_validation() {
+    bool passed = true;
+
+    auto null_window_state = std::make_shared<TestState>();
+    null_window_state->return_null_window = true;
+    FakeRendererFactory null_window_factory{null_window_state};
+    passed &= check(
+        throws_exception<std::invalid_argument>([&] {
+            game_ex::core::Application application{
+                std::make_unique<FakePlatform>(null_window_state),
+                test_window(),
+                null_window_factory,
+                test_run_configuration()};
+        }),
+        "null platform window result is rejected before renderer creation");
+    passed &= check(
+        std::find(
+            null_window_state->events.begin(),
+            null_window_state->events.end(),
+            "factory.create_renderer") == null_window_state->events.end(),
+        "null window never reaches the renderer factory");
+
+    auto null_state = std::make_shared<TestState>();
+    null_state->return_null_renderer = true;
+    FakeRendererFactory null_factory{null_state};
+    passed &= check(
+        throws_exception<std::invalid_argument>([&] {
+            game_ex::core::Application application{
+                std::make_unique<FakePlatform>(null_state),
+                test_window(),
+                null_factory,
+                test_run_configuration()};
+        }),
+        "null renderer factory result is rejected");
+
+    auto wrong_state = std::make_shared<TestState>();
+    wrong_state->returned_backend = RendererBackend::vulkan;
+    FakeRendererFactory wrong_factory{wrong_state};
+    passed &= check(
+        throws_exception<std::invalid_argument>([&] {
+            game_ex::core::Application application{
+                std::make_unique<FakePlatform>(wrong_state),
+                test_window(),
+                wrong_factory,
+                test_run_configuration()};
+        }),
+        "factory result with a different backend is rejected");
+
+    auto conflict_state = std::make_shared<TestState>();
+    FakeRendererFactory conflict_factory{conflict_state};
+    WindowSpecification conflict = test_window();
+    conflict.graphics_api = WindowGraphicsApi::vulkan;
+    passed &= check(
+        throws_exception<std::invalid_argument>([&] {
+            game_ex::core::Application application{
+                std::make_unique<FakePlatform>(conflict_state),
+                conflict,
+                conflict_factory,
+                test_run_configuration()};
+        }),
+        "conflicting caller and renderer window capabilities are rejected");
+    passed &= check(
+        std::find(
+            conflict_state->events.begin(),
+            conflict_state->events.end(),
+            "platform.create_window") == conflict_state->events.end(),
+        "capability conflict is rejected before native window creation");
+    return passed;
+}
+
+} // namespace
+
+/**
+ * @brief Runs fake-backed Application renderer lifecycle tests.
+ * @return EXIT_SUCCESS when every lifecycle invariant holds.
+ */
+int main() {
+    bool passed = true;
+    passed &= test_successful_lifecycle_order();
+    passed &= test_start_failure_rollback();
+    passed &= test_initial_frame_failure_rollback();
+    passed &= test_runtime_frame_failure_cleanup();
+    passed &= test_composition_validation();
+    return passed ? EXIT_SUCCESS : EXIT_FAILURE;
+}

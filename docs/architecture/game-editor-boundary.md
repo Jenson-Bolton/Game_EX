@@ -1,6 +1,6 @@
 # Game/editor boundary
 
-The game and world editor are currently separate executables that share a small desktop composition helper. Both consume Engine and WorldFormat; neither contains SDL code.
+The game and world editor are separate executables that share one desktop composition helper. Both consume Engine and WorldFormat, directly select the same OpenGL backend for this slice, and present the same diagnostic clear; neither contains SDL or OpenGL code.
 
 The editor is placed in the Game project for the foundation because it is a user-facing consumer of the engine and runtime world contract, while the WorldCompiler remains an offline data-building programme. This placement does not mean editor UI or mutable authoring data belongs in the shipped game binary.
 

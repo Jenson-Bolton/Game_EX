@@ -9,26 +9,33 @@ executable composition root
 create SDL3 Platform
         |
         v
-create hidden Window, bounded JobSystem, and owned StartupGraph
+select OpenGL RendererFactory
+        |
+        v
+create hidden OpenGL-capable Window, dormant Renderer,
+bounded JobSystem, and owned StartupGraph
         |
         v
 Application::run
   | validate job pool and entire graph
-  | start window-visibility subsystem
+  | start/verify OpenGL renderer
+  | clear and present the first diagnostic frame while hidden
+  | show window (depends on renderer)
   | pump events
-  | idle briefly
+  | clear/present the shared diagnostic frame and pace briefly
   | stop on close request
-  ` reverse-order subsystem shutdown
+  | hide window
+  ` shut down renderer (reverse dependency order)
         |
         v
-destroy Window, then Platform/SDL3
+destroy Renderer, Window, then Platform/SDL3
 ```
 
 `GameEX::Startup` owns ordinary subsystem objects and their stable dependency declarations. It validates missing dependencies and cycles before invoking any `start()` method. Ready nodes use stable lexical ordering, so serial startup does not depend on registration or filesystem order. Normal shutdown exactly reverses successful startup. If a subsystem throws during `start()`, rollback first invokes `shutdown()` on that potentially partial subsystem and then on every earlier subsystem in reverse order.
 
 The graph is single-use and protects its lifecycle states. Validation errors leave it configurable because no work has started; runtime start or shutdown failures are terminal. Destruction attempts non-throwing cleanup for a graph still running, while an explicit `shutdown()` reports the first cleanup exception after attempting every remaining cleanup.
 
-Application currently registers window visibility as its first real subsystem and marks it main-thread-affine. The application owns a conservative fixed worker pool before its startup graph, so graph cleanup completes before workers join, the native window is then destroyed, and SDL shuts down last. Platform creation, event pumping, showing, hiding, and destruction occur on the same main thread.
+Application registers `render.backend` and the dependent `platform.window.visibility` subsystem, both main-thread-affine. Renderer startup includes the first successful clear/present before visibility, so a failed or partially created context is rolled back without showing an unusable window. Reverse graph order hides the window before renderer shutdown. Member declaration order then destroys the startup graph, joins workers, destroys the renderer, destroys its borrowed native window, and finally shuts down SDL. Platform creation, renderer/context operations, event pumping, showing, hiding, and destruction occur on the same composition thread.
 
 The current `automatic_exit_after` setting is an automation hook for smoke tests, not a gameplay timer or public command-line design.
 

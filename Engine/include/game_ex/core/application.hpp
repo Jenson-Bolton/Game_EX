@@ -7,6 +7,7 @@
 
 #include "game_ex/jobs/job_system.hpp"
 #include "game_ex/platform/platform.hpp"
+#include "game_ex/render/renderer_factory.hpp"
 #include "game_ex/startup/startup_graph.hpp"
 
 #include <chrono>
@@ -26,7 +27,7 @@ struct RunConfiguration final {
      */
     std::optional<std::chrono::milliseconds> automatic_exit_after;
 
-    /** Sleep duration used while the foundation has no update/render workload. */
+    /** Simple frame-pacing sleep used by the diagnostic rendering loop. */
     std::chrono::milliseconds idle_sleep{8};
 };
 
@@ -35,7 +36,8 @@ struct RunConfiguration final {
  *
  * Application is the first composition boundary, not a service locator. The
  * executable selects a concrete Platform implementation and transfers ownership
- * to this object. Its ordinarily owned startup graph controls reversible runtime
+ * to this object. A short-lived RendererFactory creates an ordinarily owned
+ * renderer for the same window. The startup graph controls reversible runtime
  * activation without exposing global subsystem lookup.
  *
  * @ingroup core
@@ -46,14 +48,18 @@ public:
      * @brief Creates the application's single foundation-stage window.
      * @param platform Initialised platform runtime selected by the composition root.
      * @param window Requested window properties.
+     * @param renderer_factory Concrete renderer composition selected by the caller.
      * @param run Main-loop timing and optional smoke-test lifetime.
-     * @throws std::invalid_argument if platform is null or run is invalid.
+     * @throws std::invalid_argument if composition inputs or run are invalid.
      * @throws std::system_error if the bootstrap worker pool cannot create a thread.
-     * @throws std::runtime_error if the platform cannot create the window.
+     * @throws std::runtime_error if the platform cannot create the required window.
+     * @throws render::RendererError if the renderer rejects the created window.
+     * @throws std::bad_alloc if owned runtime objects cannot be allocated.
      */
     Application(
         std::unique_ptr<platform::Platform> platform,
         const platform::WindowSpecification& window,
+        const render::RendererFactory& renderer_factory,
         RunConfiguration run = {});
 
     /** Shuts down active subsystems before releasing the window and platform. */
@@ -79,6 +85,9 @@ private:
 
     /** The current milestone's sole top-level application window. */
     std::unique_ptr<platform::Window> window_;
+
+    /** Renderer destroyed before its borrowed window and owning platform. */
+    std::unique_ptr<render::Renderer> renderer_;
 
     /** Fixed bootstrap worker pool that outlives parallel startup and shutdown. */
     jobs::JobSystem job_system_;

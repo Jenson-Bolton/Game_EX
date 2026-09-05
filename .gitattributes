@@ -8,3 +8,9 @@ CMakeLists.txt text eol=lf
 *.json text eol=lf
 *.md text eol=lf
 *.dox text eol=lf
+
+# GLAD's configured byte hashes are part of the reproducible dependency check.
+Engine/third_party/glad/**/*.c text eol=lf -whitespace
+Engine/third_party/glad/**/*.h text eol=lf -whitespace
+Engine/third_party/glad/LICENSE text eol=lf
+Engine/third_party/glad/README.md text eol=lf
