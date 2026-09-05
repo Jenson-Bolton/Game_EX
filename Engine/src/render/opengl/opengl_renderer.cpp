@@ -283,6 +283,9 @@ public:
                 .api_version = reinterpret_cast<const char*>(version_text),
                 .vendor = reinterpret_cast<const char*>(vendor_text),
                 .device = reinterpret_cast<const char*>(device_text),
+                .presentation = "sRGB double-buffered default framebuffer",
+                .presented_frames = 0U,
+                .debug_error_count = 0U,
             };
             state_.store(RendererLifecycleState::running, std::memory_order_release);
         } catch (...) {
@@ -292,48 +295,60 @@ public:
     }
 
     /** @copydoc game_ex::render::Renderer::render_frame */
-    void render_frame(const DiagnosticFrame& frame) override {
+    [[nodiscard]] FramePresentationResult render_frame(
+        const DiagnosticFrame& frame) override {
         require_creator_thread("render a frame");
         require_state(RendererLifecycleState::running, "render a frame");
         validate_diagnostic_frame(frame);
 
-        if (!SDL_GL_MakeCurrent(&window_, context_)) {
-            throw current_sdl_error(
-                RendererErrorCode::presentation_failed,
-                "SDL could not make the OpenGL context current for presentation");
-        }
+        try {
+            if (!SDL_GL_MakeCurrent(&window_, context_)) {
+                throw current_sdl_error(
+                    RendererErrorCode::presentation_failed,
+                    "SDL could not make the OpenGL context current for presentation");
+            }
 
-        int pixel_width{};
-        int pixel_height{};
-        if (!SDL_GetWindowSizeInPixels(&window_, &pixel_width, &pixel_height)) {
-            throw current_sdl_error(
-                RendererErrorCode::presentation_failed,
-                "SDL could not query the window drawable size in pixels");
-        }
+            int pixel_width{};
+            int pixel_height{};
+            if (!SDL_GetWindowSizeInPixels(&window_, &pixel_width, &pixel_height)) {
+                throw current_sdl_error(
+                    RendererErrorCode::presentation_failed,
+                    "SDL could not query the window drawable size in pixels");
+            }
 
-        if (pixel_width < 0 || pixel_height < 0) {
-            throw RendererError{
-                RendererErrorCode::presentation_failed,
-                RendererBackend::open_gl,
-                "SDL returned a negative drawable pixel extent"};
-        }
+            if (pixel_width < 0 || pixel_height < 0) {
+                throw RendererError{
+                    RendererErrorCode::presentation_failed,
+                    RendererBackend::open_gl,
+                    "SDL returned a negative drawable pixel extent"};
+            }
+            if (pixel_width == 0 || pixel_height == 0) {
+                return FramePresentationResult::deferred_zero_extent;
+            }
 
-        glViewport(0, 0, pixel_width, pixel_height);
-        glClearColor(frame.red, frame.green, frame.blue, frame.alpha);
-        glClear(GL_COLOR_BUFFER_BIT);
+            glViewport(0, 0, pixel_width, pixel_height);
+            glClearColor(frame.red, frame.green, frame.blue, frame.alpha);
+            glClear(GL_COLOR_BUFFER_BIT);
 
-        const GLenum frame_error = glGetError();
-        if (frame_error != GL_NO_ERROR) {
-            throw RendererError{
-                RendererErrorCode::presentation_failed,
-                RendererBackend::open_gl,
-                "OpenGL clear failed: " + open_gl_error_text(frame_error)};
-        }
+            const GLenum frame_error = glGetError();
+            if (frame_error != GL_NO_ERROR) {
+                throw RendererError{
+                    RendererErrorCode::presentation_failed,
+                    RendererBackend::open_gl,
+                    "OpenGL clear failed: " + open_gl_error_text(frame_error)};
+            }
 
-        if (!SDL_GL_SwapWindow(&window_)) {
-            throw current_sdl_error(
-                RendererErrorCode::presentation_failed,
-                "SDL could not present the OpenGL diagnostic frame");
+            if (!SDL_GL_SwapWindow(&window_)) {
+                throw current_sdl_error(
+                    RendererErrorCode::presentation_failed,
+                    "SDL could not present the OpenGL diagnostic frame");
+            }
+
+            ++diagnostics_.presented_frames;
+            return FramePresentationResult::presented;
+        } catch (...) {
+            state_.store(RendererLifecycleState::failed, std::memory_order_release);
+            throw;
         }
     }
 
@@ -431,7 +446,7 @@ private:
 };
 
 /**
- * @brief Factory for the sole concrete backend enabled in v0.1.5.
+ * @brief Factory for the OpenGL implementation of the shared renderer contract.
  */
 class OpenGlRendererFactory final : public RendererFactory {
 public:

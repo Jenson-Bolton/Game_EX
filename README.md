@@ -2,13 +2,19 @@
 
 Game_EX is a new C++20 foundation for a large-world transport, city, and land-use simulation. It is intentionally split into a reusable engine, an offline world compiler/runtime world format, and the game applications.
 
-The current `v0.1.5` foundation combines deterministic startup/jobs infrastructure, the first portable world-data contract, and the first concrete renderer. The game and world editor each create an SDL3 window through the same shared Render API, verify an OpenGL 4.6 Core context, and present the same sRGB diagnostic clear frame. The dependency-free WorldCompiler still validates a strict staged terrain manifest, writes a deterministic `.gexworld` package, and reopens it through the runtime-only `GameEX::WorldFormat` reader. The committed terrain fixture remains synthetic and neither application visualises it yet. Vulkan 1.3 and explicit renderer selection are the next backend slice, preserving the accepted [cross-technology direction](docs/decisions/0004-dual-renderer-backends.md).
+The current `v0.1.6` foundation combines deterministic startup/jobs, the first
+portable world-data contract, and real cross-technology rendering. The game and
+world editor use the same backend-neutral Render API and exact linear diagnostic
+frame through either OpenGL 4.6 Core or Vulkan 1.3. Omission or
+`--renderer=auto` tries Vulkan first; explicit `opengl`/`vulkan` never silently
+fall back. The dependency-free WorldCompiler still compiles and reopens one
+strict synthetic terrain package. Neither application visualises it yet.
 
 ## Repository layout
 
 ```text
 Game_EX/
-|-- Engine/          Reusable engine, SDL3 platform, Render API, and OpenGL backend
+|-- Engine/          Reusable engine, SDL3 platform, and OpenGL/Vulkan renderers
 |-- WorldCompiler/   Runtime world format and offline compiler
 |-- Game/            Game and world-editor applications
 |-- docs/            Project, architecture, section, and development docs
@@ -20,7 +26,12 @@ The three source directories are independent CMake projects. The root project is
 
 ## Build on Windows
 
-Prerequisites are Visual Studio 2022 with Desktop C++, CMake 3.25 or newer, Git, and a driver exposing OpenGL 4.6 Core with an sRGB-capable default framebuffer. The first configure downloads the pinned SDL3 source release into the ignored build tree. The minimal generated GLAD 2.0.8 loader is audited and vendored, so supported builds do not require Python or Jinja.
+Prerequisites are Visual Studio 2022 with Desktop C++, CMake 3.25 or newer, Git,
+an OpenGL 4.6 Core sRGB-capable driver, and a LunarG Vulkan SDK plus Vulkan 1.3
+loader/device. The SDK is found from `GAMEEX_VULKAN_SDK_ROOT`, `VULKAN_SDK`, or
+the highest valid `C:/VulkanSDK/*` install. Use
+`-DGAMEEX_ENABLE_VULKAN=OFF` for an OpenGL-only build. The first configure
+downloads pinned SDL3 into the ignored build tree; audited GLAD remains vendored.
 
 ```powershell
 cmake --preset vs2022
@@ -34,6 +45,16 @@ Run the applications:
 .\build\vs2022\bin\Debug\game_ex.exe
 .\build\vs2022\bin\Debug\game_ex_world_editor.exe
 ```
+
+Choose a backend explicitly when testing it:
+
+```powershell
+.\build\vs2022\bin\Debug\game_ex.exe --renderer=vulkan
+.\build\vs2022\bin\Debug\game_ex_world_editor.exe --renderer=opengl
+```
+
+See [building](docs/development/building.md) for exact SDK discovery, standalone
+Engine/WorldCompiler commands, validation isolation, and renderer options.
 
 Exercise the portable compiler with its project-authored fixture:
 

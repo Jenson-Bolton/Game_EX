@@ -24,6 +24,11 @@
  */
 
 /**
+ * @defgroup render_vulkan Vulkan renderer backend
+ * @brief SDL/Vulkan 1.3 transfer-clear implementation of the shared Render API.
+ */
+
+/**
  * @defgroup world_format Runtime world format
  * @brief Versioned model and package reader shared by compiler, game, and editor.
  */

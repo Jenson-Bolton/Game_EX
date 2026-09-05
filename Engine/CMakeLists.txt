@@ -15,6 +15,12 @@ find_package(Threads REQUIRED)
 
 option(GAMEEX_ENGINE_USE_SYSTEM_SDL3 "Use an installed SDL3 package instead of the pinned source release" OFF)
 option(GAMEEX_ENABLE_GUI_SMOKE_TESTS "Register tests that briefly open desktop windows" ON)
+option(GAMEEX_ENABLE_VULKAN "Build the Vulkan 1.3 renderer backend" ON)
+set(
+    GAMEEX_VULKAN_SDK_ROOT ""
+    CACHE PATH
+    "Explicit Vulkan SDK root (takes precedence over VULKAN_SDK and conventional Windows installs)"
+)
 
 function(gameex_engine_enable_warnings target_name)
     if(MSVC)
@@ -23,6 +29,75 @@ function(gameex_engine_enable_warnings target_name)
         target_compile_options(${target_name} PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Werror)
     endif()
 endfunction()
+
+function(gameex_vulkan_sdk_is_valid sdk_root result_variable)
+    if(
+        EXISTS "${sdk_root}/Include/vulkan/vulkan.h"
+        AND EXISTS "${sdk_root}/Lib/vulkan-1.lib"
+    )
+        set(${result_variable} TRUE PARENT_SCOPE)
+    else()
+        set(${result_variable} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+if(GAMEEX_ENABLE_VULKAN)
+    set(gameex_selected_vulkan_sdk "")
+    if(NOT GAMEEX_VULKAN_SDK_ROOT STREQUAL "")
+        gameex_vulkan_sdk_is_valid("${GAMEEX_VULKAN_SDK_ROOT}" gameex_sdk_valid)
+        if(NOT gameex_sdk_valid)
+            message(FATAL_ERROR
+                "GAMEEX_VULKAN_SDK_ROOT is not a valid Vulkan SDK: ${GAMEEX_VULKAN_SDK_ROOT}. "
+                "Expected Include/vulkan/vulkan.h and Lib/vulkan-1.lib."
+            )
+        endif()
+        set(gameex_selected_vulkan_sdk "${GAMEEX_VULKAN_SDK_ROOT}")
+    elseif(DEFINED ENV{VULKAN_SDK} AND NOT "$ENV{VULKAN_SDK}" STREQUAL "")
+        file(TO_CMAKE_PATH "$ENV{VULKAN_SDK}" gameex_environment_vulkan_sdk)
+        gameex_vulkan_sdk_is_valid("${gameex_environment_vulkan_sdk}" gameex_sdk_valid)
+        if(NOT gameex_sdk_valid)
+            message(FATAL_ERROR
+                "VULKAN_SDK is set but does not name a valid Vulkan SDK: "
+                "${gameex_environment_vulkan_sdk}. Expected Include/vulkan/vulkan.h "
+                "and Lib/vulkan-1.lib."
+            )
+        endif()
+        set(gameex_selected_vulkan_sdk "${gameex_environment_vulkan_sdk}")
+    elseif(WIN32)
+        file(GLOB gameex_vulkan_sdk_candidates LIST_DIRECTORIES TRUE "C:/VulkanSDK/*")
+        list(SORT gameex_vulkan_sdk_candidates COMPARE NATURAL ORDER DESCENDING)
+        foreach(gameex_vulkan_sdk_candidate IN LISTS gameex_vulkan_sdk_candidates)
+            gameex_vulkan_sdk_is_valid("${gameex_vulkan_sdk_candidate}" gameex_sdk_valid)
+            if(gameex_sdk_valid)
+                set(gameex_selected_vulkan_sdk "${gameex_vulkan_sdk_candidate}")
+                break()
+            endif()
+        endforeach()
+    endif()
+
+    if(gameex_selected_vulkan_sdk STREQUAL "")
+        message(FATAL_ERROR
+            "GAMEEX_ENABLE_VULKAN=ON but no Vulkan SDK was found. Set "
+            "GAMEEX_VULKAN_SDK_ROOT, set VULKAN_SDK, install a conventional "
+            "Windows SDK under C:/VulkanSDK, or configure with GAMEEX_ENABLE_VULKAN=OFF."
+        )
+    endif()
+
+    set(Vulkan_INCLUDE_DIR "${gameex_selected_vulkan_sdk}/Include" CACHE PATH "" FORCE)
+    set(Vulkan_LIBRARY "${gameex_selected_vulkan_sdk}/Lib/vulkan-1.lib" CACHE FILEPATH "" FORCE)
+    find_package(Vulkan 1.3 REQUIRED)
+    set(
+        GAMEEX_SELECTED_VULKAN_SDK_ROOT "${gameex_selected_vulkan_sdk}"
+        CACHE INTERNAL "Vulkan SDK selected by Game_EX"
+    )
+    set(
+        GAMEEX_VULKAN_EMPTY_IMPLICIT_LAYER_DIRECTORY
+        "${CMAKE_CURRENT_BINARY_DIR}/vulkan-empty-implicit-layers"
+        CACHE INTERNAL "Empty loader path used by hermetic Vulkan smoke tests"
+    )
+    file(MAKE_DIRECTORY "${GAMEEX_VULKAN_EMPTY_IMPLICIT_LAYER_DIRECTORY}")
+    message(STATUS "Game_EX Vulkan SDK: ${GAMEEX_SELECTED_VULKAN_SDK_ROOT}")
+endif()
 
 if(GAMEEX_ENGINE_USE_SYSTEM_SDL3)
     find_package(SDL3 3.4 CONFIG REQUIRED)
@@ -173,6 +248,32 @@ target_link_libraries(
 )
 gameex_engine_enable_warnings(gameex_render_opengl)
 
+if(GAMEEX_ENABLE_VULKAN)
+    add_library(
+        gameex_render_vulkan STATIC
+        src/render/vulkan/vulkan_policy.cpp
+        src/render/vulkan/vulkan_renderer.cpp
+    )
+    add_library(GameEX::RenderVulkan ALIAS gameex_render_vulkan)
+
+    target_compile_features(gameex_render_vulkan PUBLIC cxx_std_20)
+    target_include_directories(
+        gameex_render_vulkan
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    )
+    target_link_libraries(
+        gameex_render_vulkan
+        PUBLIC GameEX::Render
+        PRIVATE GameEX::PlatformSDL ${GAMEEX_SDL_TARGET} Vulkan::Vulkan
+    )
+    gameex_apply_version(gameex_render_vulkan)
+    gameex_engine_enable_warnings(gameex_render_vulkan)
+endif()
+
 if(BUILD_TESTING)
     add_executable(gameex_jobs_tests tests/job_system_tests.cpp)
     target_compile_features(gameex_jobs_tests PRIVATE cxx_std_20)
@@ -194,6 +295,18 @@ if(BUILD_TESTING)
     target_link_libraries(gameex_application_render_tests PRIVATE GameEX::Core)
     gameex_engine_enable_warnings(gameex_application_render_tests)
 
+    if(GAMEEX_ENABLE_VULKAN)
+        add_executable(gameex_vulkan_policy_tests tests/vulkan_policy_tests.cpp)
+        target_compile_features(gameex_vulkan_policy_tests PRIVATE cxx_std_20)
+        target_include_directories(
+            gameex_vulkan_policy_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        )
+        target_link_libraries(
+            gameex_vulkan_policy_tests PRIVATE GameEX::RenderVulkan Vulkan::Vulkan
+        )
+        gameex_engine_enable_warnings(gameex_vulkan_policy_tests)
+    endif()
+
     if(GAMEEX_ENABLE_GUI_SMOKE_TESTS)
         add_executable(gameex_render_opengl_smoke tests/opengl_renderer_smoke.cpp)
         target_compile_features(gameex_render_opengl_smoke PRIVATE cxx_std_20)
@@ -203,6 +316,17 @@ if(BUILD_TESTING)
         )
         gameex_apply_version(gameex_render_opengl_smoke)
         gameex_engine_enable_warnings(gameex_render_opengl_smoke)
+
+        if(GAMEEX_ENABLE_VULKAN)
+            add_executable(gameex_render_vulkan_smoke tests/vulkan_renderer_smoke.cpp)
+            target_compile_features(gameex_render_vulkan_smoke PRIVATE cxx_std_20)
+            target_link_libraries(
+                gameex_render_vulkan_smoke
+                PRIVATE GameEX::RenderVulkan GameEX::PlatformSDL
+            )
+            gameex_apply_version(gameex_render_vulkan_smoke)
+            gameex_engine_enable_warnings(gameex_render_vulkan_smoke)
+        endif()
     endif()
 
     add_test(NAME engine.job_system COMMAND gameex_jobs_tests)
@@ -226,12 +350,57 @@ if(BUILD_TESTING)
     add_test(NAME engine.application_render_lifecycle COMMAND gameex_application_render_tests)
     set_tests_properties(engine.application_render_lifecycle PROPERTIES LABELS "unit")
 
+    if(GAMEEX_ENABLE_VULKAN)
+        add_test(NAME engine.vulkan_policy COMMAND gameex_vulkan_policy_tests)
+        set_tests_properties(engine.vulkan_policy PROPERTIES LABELS "unit;vulkan")
+    endif()
+
     if(GAMEEX_ENABLE_GUI_SMOKE_TESTS)
         add_test(NAME engine.render_opengl_smoke COMMAND gameex_render_opengl_smoke)
         set_tests_properties(
             engine.render_opengl_smoke
             PROPERTIES LABELS "gui;smoke" TIMEOUT 15
         )
+
+        if(GAMEEX_ENABLE_VULKAN)
+            add_test(
+                NAME engine.render_vulkan_smoke
+                COMMAND gameex_render_vulkan_smoke
+            )
+            set_tests_properties(
+                engine.render_vulkan_smoke
+                PROPERTIES
+                    LABELS "gui;smoke;vulkan"
+                    TIMEOUT 15
+                    ENVIRONMENT_MODIFICATION
+                        "VK_LAYER_PATH=unset:;VK_ADD_LAYER_PATH=unset:;VK_INSTANCE_LAYERS=unset:;VK_LOADER_LAYERS_ENABLE=unset:;VK_LOADER_LAYERS_ALLOW=unset:;VK_IMPLICIT_LAYER_PATH=set:${GAMEEX_VULKAN_EMPTY_IMPLICIT_LAYER_DIRECTORY};VK_ADD_IMPLICIT_LAYER_PATH=unset:;VK_LOADER_DEBUG=unset:;VK_LOADER_LAYERS_DISABLE=set:~implicit~"
+            )
+
+            set(gameex_validation_layer_json
+                "${GAMEEX_SELECTED_VULKAN_SDK_ROOT}/Bin/VkLayer_khronos_validation.json")
+            set(gameex_validation_layer_dll
+                "${GAMEEX_SELECTED_VULKAN_SDK_ROOT}/Bin/VkLayer_khronos_validation.dll")
+            if(NOT EXISTS "${gameex_validation_layer_json}"
+                OR NOT EXISTS "${gameex_validation_layer_dll}")
+                message(FATAL_ERROR
+                    "Vulkan validation smoke requires VkLayer_khronos_validation.json "
+                    "and VkLayer_khronos_validation.dll under the selected SDK Bin directory: "
+                    "${GAMEEX_SELECTED_VULKAN_SDK_ROOT}/Bin"
+                )
+            endif()
+            add_test(
+                NAME engine.render_vulkan_validation_smoke
+                COMMAND gameex_render_vulkan_smoke --validation-required
+            )
+            set_tests_properties(
+                engine.render_vulkan_validation_smoke
+                PROPERTIES
+                    LABELS "gui;smoke;vulkan;validation"
+                    TIMEOUT 15
+                    ENVIRONMENT_MODIFICATION
+                        "VK_LAYER_PATH=set:${GAMEEX_SELECTED_VULKAN_SDK_ROOT}/Bin;VK_ADD_LAYER_PATH=unset:;VK_INSTANCE_LAYERS=unset:;VK_LOADER_LAYERS_ENABLE=unset:;VK_LOADER_LAYERS_ALLOW=unset:;VK_IMPLICIT_LAYER_PATH=set:${GAMEEX_VULKAN_EMPTY_IMPLICIT_LAYER_DIRECTORY};VK_ADD_IMPLICIT_LAYER_PATH=unset:;VK_LOADER_DEBUG=unset:;VK_LOADER_LAYERS_DISABLE=set:~implicit~"
+            )
+        endif()
     endif()
 
     add_test(

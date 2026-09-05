@@ -24,6 +24,7 @@ using game_ex::platform::Window;
 using game_ex::platform::WindowGraphicsApi;
 using game_ex::platform::WindowSpecification;
 using game_ex::render::DiagnosticFrame;
+using game_ex::render::FramePresentationResult;
 using game_ex::render::Renderer;
 using game_ex::render::RendererBackend;
 using game_ex::render::RendererDiagnostics;
@@ -52,6 +53,9 @@ struct TestState final {
     /** One-based frame number that raises a runtime failure, or zero for none. */
     int fail_frame{};
 
+    /** Number of initial frames safely deferred by the fake renderer. */
+    int defer_initial_frames{};
+
     /** When true, the factory violates its non-null result contract. */
     bool return_null_renderer{};
 
@@ -60,6 +64,9 @@ struct TestState final {
 
     /** Backend reported by the returned renderer. */
     RendererBackend returned_backend{RendererBackend::open_gl};
+
+    /** Fake renderer state observed immediately before shutdown cleanup. */
+    RendererLifecycleState state_before_shutdown{RendererLifecycleState::dormant};
 };
 
 /**
@@ -216,13 +223,18 @@ public:
     }
 
     /** @copydoc game_ex::render::Renderer::render_frame */
-    void render_frame(const DiagnosticFrame& frame) override {
+    [[nodiscard]] FramePresentationResult render_frame(
+        const DiagnosticFrame& frame) override {
         game_ex::render::validate_diagnostic_frame(frame);
         state_->events.emplace_back("renderer.frame");
         ++state_->rendered_frames;
         if (state_->fail_frame == state_->rendered_frames) {
+            lifecycle_state_ = RendererLifecycleState::failed;
             throw std::runtime_error("injected renderer frame failure");
         }
+        return state_->rendered_frames <= state_->defer_initial_frames
+            ? FramePresentationResult::deferred_zero_extent
+            : FramePresentationResult::presented;
     }
 
     /** @copydoc game_ex::render::Renderer::diagnostics */
@@ -233,6 +245,7 @@ public:
     /** @copydoc game_ex::render::Renderer::shutdown */
     void shutdown() override {
         state_->events.emplace_back("renderer.shutdown");
+        state_->state_before_shutdown = lifecycle_state_;
         lifecycle_state_ = RendererLifecycleState::stopped;
     }
 
@@ -315,6 +328,7 @@ private:
 bool test_successful_lifecycle_order() {
     auto state = std::make_shared<TestState>();
     FakeRendererFactory factory{state};
+    bool reached_visibility{};
     {
         game_ex::core::Application application{
             std::make_unique<FakePlatform>(state),
@@ -324,6 +338,7 @@ bool test_successful_lifecycle_order() {
         if (application.run() != 0) {
             return check(false, "successful fake application returns zero");
         }
+        reached_visibility = application.reached_window_visibility();
     }
 
     const std::vector<std::string> expected{
@@ -343,10 +358,109 @@ bool test_successful_lifecycle_order() {
     };
 
     bool passed = check(state->events == expected, "renderer/window lifecycle order is exact");
+    passed &= check(reached_visibility, "successful run retains visibility evidence");
     passed &= check(
         state->requested_api == WindowGraphicsApi::open_gl,
         "Application applies the renderer factory window capability");
     passed &= check(state->rendered_frames == 2, "startup and main loop both render a frame");
+    return passed;
+}
+
+/**
+ * @brief Verifies a zero-extent hidden attempt may defer until after visibility.
+ * @return True when the exact attempt/show/present sequence remains intact.
+ */
+bool test_deferred_hidden_attempt_then_visible_present() {
+    auto state = std::make_shared<TestState>();
+    state->defer_initial_frames = 1;
+    FakeRendererFactory factory{state};
+    bool reached_visibility{};
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state),
+            test_window(),
+            factory,
+            test_run_configuration()};
+        if (application.run() != 0) {
+            return check(false, "deferred-start fake application returns zero");
+        }
+        reached_visibility = application.reached_window_visibility();
+    }
+
+    const std::vector<std::string> expected{
+        "platform.create_window",
+        "factory.create_renderer",
+        "renderer.start",
+        "renderer.frame",
+        "window.show",
+        "platform.pump_events",
+        "renderer.frame",
+        "platform.pump_events",
+        "window.hide",
+        "renderer.shutdown",
+        "renderer.destroy",
+        "window.destroy",
+        "platform.destroy",
+    };
+    bool passed = check(
+        state->events == expected,
+        "hidden deferral, visibility, and visible presentation order is exact");
+    passed &= check(
+        reached_visibility,
+        "deferred hidden attempt records later successful visibility");
+    passed &= check(
+        state->rendered_frames == 2,
+        "one deferred hidden attempt is followed by one presented visible frame");
+    return passed;
+}
+
+/**
+ * @brief Verifies a timed run cannot pass without a real presentation.
+ * @return True when permanent deferral becomes a typed presentation failure.
+ */
+bool test_timed_run_rejects_permanent_deferral() {
+    auto state = std::make_shared<TestState>();
+    state->defer_initial_frames = 100;
+    FakeRendererFactory factory{state};
+    const game_ex::core::RunConfiguration run{
+        .automatic_exit_after = std::chrono::milliseconds::zero(),
+        .idle_sleep = std::chrono::milliseconds::zero(),
+    };
+    bool typed_failure{};
+    bool reached_visibility{};
+    {
+        game_ex::core::Application application{
+            std::make_unique<FakePlatform>(state), test_window(), factory, run};
+        try {
+            static_cast<void>(application.run());
+        } catch (const game_ex::render::RendererError& error) {
+            typed_failure = error.code()
+                == game_ex::render::RendererErrorCode::presentation_failed;
+        }
+        reached_visibility = application.reached_window_visibility();
+    }
+
+    bool passed = check(
+        typed_failure,
+        "timed permanent deferral reports presentation_failed");
+    passed &= check(
+        reached_visibility,
+        "timed no-present failure remains a post-visibility failure");
+    passed &= check(
+        state->events == std::vector<std::string>{
+            "platform.create_window",
+            "factory.create_renderer",
+            "renderer.start",
+            "renderer.frame",
+            "window.show",
+            "platform.pump_events",
+            "window.hide",
+            "renderer.shutdown",
+            "renderer.destroy",
+            "window.destroy",
+            "platform.destroy",
+        },
+        "timed permanent-deferral cleanup order is exact");
     return passed;
 }
 
@@ -359,6 +473,7 @@ bool test_start_failure_rollback() {
     state->fail_start = true;
     FakeRendererFactory factory{state};
     bool threw = false;
+    bool reached_visibility{};
     {
         game_ex::core::Application application{
             std::make_unique<FakePlatform>(state),
@@ -368,9 +483,11 @@ bool test_start_failure_rollback() {
         threw = throws_exception<std::runtime_error>([&application] {
             static_cast<void>(application.run());
         });
+        reached_visibility = application.reached_window_visibility();
     }
 
     bool passed = check(threw, "renderer startup failure reaches the caller");
+    passed &= check(!reached_visibility, "start failure remains pre-visibility");
     passed &= check(
         std::find(state->events.begin(), state->events.end(), "window.show")
             == state->events.end(),
@@ -390,6 +507,7 @@ bool test_initial_frame_failure_rollback() {
     state->fail_frame = 1;
     FakeRendererFactory factory{state};
     bool threw = false;
+    bool reached_visibility{};
     {
         game_ex::core::Application application{
             std::make_unique<FakePlatform>(state),
@@ -399,9 +517,11 @@ bool test_initial_frame_failure_rollback() {
         threw = throws_exception<std::runtime_error>([&application] {
             static_cast<void>(application.run());
         });
+        reached_visibility = application.reached_window_visibility();
     }
 
     bool passed = check(threw, "initial diagnostic frame failure reaches the caller");
+    passed &= check(!reached_visibility, "initial-frame failure remains pre-visibility");
     passed &= check(
         std::find(state->events.begin(), state->events.end(), "window.show")
             == state->events.end(),
@@ -409,6 +529,9 @@ bool test_initial_frame_failure_rollback() {
     passed &= check(
         std::count(state->events.begin(), state->events.end(), "renderer.shutdown") == 1,
         "initial-frame failure rolls back renderer state");
+    passed &= check(
+        state->state_before_shutdown == RendererLifecycleState::failed,
+        "native frame failure is terminal until shutdown");
     return passed;
 }
 
@@ -421,6 +544,7 @@ bool test_runtime_frame_failure_cleanup() {
     state->fail_frame = 2;
     FakeRendererFactory factory{state};
     bool threw = false;
+    bool reached_visibility{};
     {
         game_ex::core::Application application{
             std::make_unique<FakePlatform>(state),
@@ -430,15 +554,20 @@ bool test_runtime_frame_failure_cleanup() {
         threw = throws_exception<std::runtime_error>([&application] {
             static_cast<void>(application.run());
         });
+        reached_visibility = application.reached_window_visibility();
     }
 
     const auto hide = std::find(state->events.begin(), state->events.end(), "window.hide");
     const auto shutdown = std::find(
         state->events.begin(), state->events.end(), "renderer.shutdown");
     bool passed = check(threw, "runtime frame failure reaches the caller");
+    passed &= check(reached_visibility, "runtime frame failure retains visibility evidence");
     passed &= check(hide != state->events.end(), "visible window is hidden after frame failure");
     passed &= check(shutdown != state->events.end(), "renderer shuts down after frame failure");
     passed &= check(hide < shutdown, "window hide precedes renderer shutdown");
+    passed &= check(
+        state->state_before_shutdown == RendererLifecycleState::failed,
+        "runtime native frame failure is terminal until shutdown");
     return passed;
 }
 
@@ -525,6 +654,8 @@ bool test_composition_validation() {
 int main() {
     bool passed = true;
     passed &= test_successful_lifecycle_order();
+    passed &= test_deferred_hidden_attempt_then_visible_present();
+    passed &= test_timed_run_rejects_permanent_deferral();
     passed &= test_start_failure_rollback();
     passed &= test_initial_frame_failure_rollback();
     passed &= test_runtime_frame_failure_cleanup();

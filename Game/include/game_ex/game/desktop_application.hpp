@@ -53,9 +53,10 @@ struct DesktopApplicationSpecification final {
  * @param argument_values Process command-line argument array.
  * @return Zero after orderly shutdown, or a non-zero value after a reported error.
  *
- * The internal `--quit-after-ms=<milliseconds>` option exists only for automated
- * window smoke tests. Unknown arguments are rejected so accidental configuration
- * errors remain visible during this foundation stage.
+ * `--renderer=opengl|vulkan|auto` selects an explicit backend or the default
+ * ordered automatic policy. `--quit-after-ms=<milliseconds>` exists only for
+ * automated window smoke tests. Options may appear in either order; unknown,
+ * empty, repeated, and conflicting renderer arguments are rejected.
  *
  * @ingroup game_app
  */

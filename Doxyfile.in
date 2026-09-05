@@ -16,6 +16,7 @@ INPUT                  = "@CMAKE_SOURCE_DIR@/Engine/include" \
                          "@CMAKE_SOURCE_DIR@/WorldCompiler/tests" \
                          "@CMAKE_SOURCE_DIR@/Game/include" \
                          "@CMAKE_SOURCE_DIR@/Game/src" \
+                         "@CMAKE_SOURCE_DIR@/Game/tests" \
                          "@CMAKE_SOURCE_DIR@/docs/doxygen"
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.hpp *.cpp *.dox

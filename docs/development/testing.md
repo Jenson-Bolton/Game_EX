@@ -1,29 +1,87 @@
 # Testing
 
-CTest is the common test runner. Tests are labelled by purpose:
+CTest is the common runner. Tests use these labels:
 
-- `unit`: deterministic, dependency-light logic checks;
-- `gui`: requires a desktop windowing environment;
-- `smoke`: proves a top-level composition path starts and exits successfully.
+- `unit`: deterministic dependency-light logic;
+- `gui`: a real desktop window/display is required;
+- `smoke`: a production-shaped lifecycle must complete;
+- `opengl` or `vulkan`: backend-specific evidence;
+- `validation`: Khronos Vulkan validation is required, not optional;
+- `death`: a subprocess must fail fast for a forbidden ownership action.
 
-Current tests verify bounded job batches, concurrency and lifecycle protection; serial and controlled-parallel startup validation/order/affinity/barriers/rollback; Render API value validation; fake-backed renderer/application ordering and rollback; a real OpenGL 4.6 Core clear/present path; strict stage parsing and package encoding/decoding; stable WorldCompiler CLI behaviour; world-header compatibility; and timed rendered launches of both SDL3 applications. An application smoke succeeds only if SDL initialisation, OpenGL-capable native window creation, job/bootstrap creation, context verification, hidden first clear/present, startup-controlled showing, event pumping/rendering, reverse hiding/context shutdown, worker joining, and orderly destruction all complete.
+Run everything from a configured workspace:
 
-Render API tests cover finite inclusive `[0, 1]` colour validation, stable lowercase backend text, and categorized errors. Fake Application tests prove the factory capability reaches window creation, renderer start/first frame precede show, start and initial-frame failures roll back without visibility, runtime frame failure hides before renderer shutdown, and invalid factory composition is rejected. The GUI backend smoke checks lifecycle misuse and reports the actual version/profile/vendor/device after a real clear/swap. Game and editor smoke tests then exercise the same production composition path. Set `GAMEEX_ENABLE_GUI_SMOKE_TESTS=OFF` when configuring a genuinely headless test environment; the non-GUI lifecycle evidence remains available.
+```powershell
+ctest --test-dir build/vs2022 -C Debug --output-on-failure
+```
 
-JobSystem tests use explicit worker counts and controlled gates rather than elapsed time as evidence. They cover invalid bounds, true two-worker overlap, exact-once/off-owner execution, input-indexed failures despite an inverted controlled failure-point order, nested/concurrent/foreign rejection, waiting for in-flight work, rejection of later startup admission, main-thread affinity, barrier dependencies, and serial reverse-logical rollback.
+## Rendering evidence
 
-WorldCompiler tests use a project-authored 2x2 EPSG:5514 fixture with a
-negative double-precision origin, non-zero vertical origin, local float heights,
-and one invalid sample. They lock the complete WorldFormat 0.2 bytes to a
-checked-in textual golden, load that golden through an executable linked only to
-`GameEX::WorldFormat`, and check deterministic compilation across directories,
-complete provenance round trip, fixed stage-semantic enforcement on both encode
-and read, the standard CRC-32/ISO-HDLC `123456789` vector, corruption,
-truncation, unsupported versions, non-canonical offsets, unsafe paths, staged
-size/hash tampering, strict whole-file manifest grammar, finite coordinate
-bounds, output/foreign-lock/legacy-part preservation, successful owned-artifact
-cleanup, a controlled same-output compiler race, and stable CLI exit categories.
-The fixture proves codec behaviour only; real-data acceptance requires a
-separate source-specific report.
+Neutral Render tests validate the exact linear diagnostic colour, inclusive
+finite `[0, 1]` bounds, backend text, and categorized error retention. Fake
+Application tests record exact ordering for window capability, renderer start,
+hidden presentation attempt, show, visible presentation, hide, renderer
+shutdown/destruction, window destruction, and platform destruction. They prove:
 
-Future domain tests should favour fixed inputs, explicit seeds, state invariants, replay checksums, and geographically separated validation data where machine-learning or semantic classifiers are evaluated. Long-running whole-world tests must not replace small reproducible vertical slices.
+- renderer-start and initial-frame failure remain pre-visibility;
+- a hidden zero-extent deferral may be followed by show and a real visible present;
+- a timed run with permanent deferral fails `presentation_failed` rather than
+  passing because its timer expired;
+- visibility evidence remains true for success, deferred-show, runtime failure,
+  and timed no-present paths;
+- a native-frame failure is terminal until renderer shutdown;
+- partial start and runtime failures preserve reverse cleanup.
+
+Pure Vulkan policy tests shuffle inputs and lock deterministic device and queue
+selection. They cover combined/separate queues, unsuitable devices, sRGB-only
+format preference, single undefined-format handling, empty/non-sRGB rejection,
+fixed and clamped extents, bounded/unlimited/inconsistent image counts, and
+composite-alpha preference/rejection.
+
+The real OpenGL smoke verifies an actual 4.6 Core sRGB context and a presentation
+after visibility. The normal Vulkan smoke requires a real Vulkan 1.3 device,
+sRGB FIFO transfer-destination swapchain, and at least 32 visible presentations.
+The validation smoke repeats that batch with required Khronos validation and
+fails when `debug_error_count` is non-zero. Per-image semaphore reuse is thus
+exercised across repeated acquisition rather than inferred from timer survival.
+
+Validation tests make loader discovery deterministic: `VK_LAYER_PATH` points at
+the selected SDK `Bin`; `VK_IMPLICIT_LAYER_PATH` points at an existing empty
+build directory; additive/inherited layer controls are unset; and
+`VK_LOADER_LAYERS_DISABLE=~implicit~`. This prevents third-party overlays or
+stale registry JSON from contaminating engine evidence. Normal Vulkan-creating
+smokes use the same empty implicit-layer boundary without forcing validation.
+
+Game and world-editor smokes explicitly run both OpenGL and Vulkan. A separate
+auto smoke proves the production default path but is not evidence that both
+backends work. Every timed application smoke succeeds only after at least one
+renderer-confirmed presentation.
+
+## Selection evidence
+
+Pure parser tests cover omission/default auto, explicit auto/OpenGL/Vulkan,
+option order, and rejection of empty, unknown, repeated, conflicting, malformed,
+signed, or excessive arguments. Injected attempts prove:
+
+- explicit choices make one attempt and never fall back;
+- auto success makes one Vulkan attempt;
+- auto fallback order is exactly Vulkan then OpenGL;
+- only unavailable/initialization failures from Vulkan before visibility qualify;
+- post-visibility unavailable/initialization, presentation, shutdown, wrong
+  backend evidence, and empty callables cannot authorize fallback;
+- the preferred failure reaches the fallback observer;
+- a failed OpenGL fallback propagates its own cause after exactly two attempts.
+
+## Other retained suites
+
+Startup and JobSystem suites retain deterministic graph validation, admission,
+affinity, concurrency, exception ordering, rollback, stopped-state, and
+wrong-thread death evidence. WorldCompiler retains strict stage/package parsing,
+full-byte golden comparison, runtime-only reading, CRC/corruption/version/bounds,
+UTF-8 staged paths, provenance, transactional publication, and race tests. The
+committed terrain fixture remains synthetic and proves codec behaviour only.
+
+Set `GAMEEX_ENABLE_GUI_SMOKE_TESTS=OFF` only in a genuinely headless build. A
+green non-GUI suite does not prove either graphics backend. Future visual tests
+must define capture colour space and tolerances; v0.1.6 intentionally makes no
+pixel-equality claim.

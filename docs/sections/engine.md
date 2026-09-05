@@ -13,16 +13,25 @@ Engine contains reusable infrastructure that has no knowledge of the Game_EX sim
 - `GameEX::PlatformSDL`: initialises SDL3, creates one native presentation-capable window, and pumps close events.
 - `GameEX::Render`: defines backend-neutral lifecycle, validated clear frames, diagnostics, and factories.
 - `GameEX::RenderOpenGL`: creates and verifies an OpenGL 4.6 Core context, loads it through GLAD, and clears/presents through SDL.
+- `GameEX::RenderVulkan`: creates a Vulkan 1.3/synchronization2 device and
+  deterministic sRGB FIFO transfer-clear swapchain behind the same Render API.
 
 ## Invariants
 
-- SDL/OpenGL types remain private to their implementation targets and checked native bridge.
+- SDL/OpenGL/Vulkan types remain private to their implementation targets and checked native bridge.
 - Platform and window objects are uniquely owned.
 - Renderer, window, and platform objects are uniquely owned; no renderer singleton or service locator exists.
 - The renderer is destroyed before its borrowed window, and the window before the runtime that created it.
 - Video initialisation, context operations, window operations, rendering, event pumping, and destruction stay on the composition thread.
-- Renderer startup and the first clear/present precede window visibility; shutdown hides the window before context destruction.
-- Diagnostic colours are finite linear values in `[0, 1]` and OpenGL presentation requires verified double-buffered sRGB capability.
+- Renderer startup and a hidden presentation attempt precede visibility; a zero
+  extent may defer until the visible loop, and timed tests require a real present.
+- Diagnostic colours are finite linear values in `[0, 1]`; OpenGL verifies a
+  double-buffered sRGB framebuffer and Vulkan accepts only sRGB/nonlinear FIFO
+  transfer-destination swapchains.
+- Vulkan selection/device/queue/format/extent/image-count/composite policy is
+  deterministic; one frame is in flight with a present-wait semaphore per image.
+- A typed deferral remains retryable, while a native frame exception is terminal
+  until creator-thread shutdown.
 - Startup registrations use stable identifiers and ordinary ownership; the graph is not a service locator.
 - Missing dependencies and cycles are rejected before any subsystem starts.
 - Shutdown and failed-start rollback use the exact reverse attempted-start order.
@@ -32,4 +41,7 @@ Engine contains reusable infrastructure that has no knowledge of the Game_EX sim
 
 ## Planned, not implemented
 
-Vulkan 1.3, explicit renderer selection/fallback policy, shaders, meshes, resource lifetimes, terrain rendering, core configuration, serialization, ECS, input, audio, world streaming, profiling, headless rendering, and any broader asynchronous/frame-job system still require their own boundaries and tests.
+Shaders, meshes, resource lifetimes, terrain rendering, render-world extraction,
+core configuration, serialization, ECS, input, audio, world streaming, profiling,
+headless rendering, maintenance1 presentation fences, and any broader
+asynchronous/frame-job system still require their own boundaries and tests.

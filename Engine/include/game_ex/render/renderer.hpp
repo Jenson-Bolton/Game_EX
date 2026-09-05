@@ -20,14 +20,14 @@ enum class RendererBackend {
     /** OpenGL renderer backend. */
     open_gl,
 
-    /** Vulkan renderer backend reserved for the next renderer slice. */
+    /** Vulkan 1.3 renderer backend. */
     vulkan
 };
 
 /**
  * @brief Converts a backend value to stable human-readable text.
  * @param backend Backend to describe.
- * @return Static lowercase backend name suitable for logs and future CLI values.
+ * @return Static lowercase backend name suitable for logs and CLI values.
  * @ingroup render
  */
 [[nodiscard]] std::string_view renderer_backend_name(RendererBackend backend) noexcept;
@@ -52,7 +52,7 @@ enum class RendererLifecycleState {
     /** Shutdown completed and the renderer cannot be restarted. */
     stopped,
 
-    /** Start or shutdown failed and cleanup may still be required. */
+    /** Startup, native frame work, or shutdown failed; cleanup may remain. */
     failed
 };
 
@@ -138,6 +138,21 @@ struct DiagnosticFrame final {
 };
 
 /**
+ * @brief Observable outcome of one backend-neutral presentation request.
+ * @ingroup render
+ */
+enum class FramePresentationResult {
+    /** The frame was submitted to the native presentation system. */
+    presented,
+
+    /** Presentation was safely deferred while the drawable pixel extent was zero. */
+    deferred_zero_extent,
+
+    /** Presentation was deferred while the native surface changed. */
+    deferred_surface_change
+};
+
+/**
  * @brief Returns the shared game/editor diagnostic clear frame.
  * @return Finite, validated dark-blue clear colour.
  * @ingroup render
@@ -183,6 +198,15 @@ struct RendererDiagnostics final {
 
     /** Driver-supplied device or renderer text. */
     std::string device;
+
+    /** Backend-neutral description of the active presentation configuration. */
+    std::string presentation;
+
+    /** Number of frames successfully handed to native presentation. */
+    std::uint64_t presented_frames{};
+
+    /** Number of API validation errors observed by enabled debug diagnostics. */
+    std::uint64_t debug_error_count{};
 };
 
 /**
@@ -190,9 +214,9 @@ struct RendererDiagnostics final {
  *
  * A renderer is an ordinary uniquely owned object. The composition thread must
  * call start(), render_frame(), diagnostics(), shutdown(), and destroy the
- * object. A failed start remains shutdown-capable so StartupGraph can roll back
- * partially created native state. A stopped renderer is intentionally not
- * restartable.
+ * object. A failed start or native frame remains shutdown-capable so
+ * StartupGraph can release partial or uncertain native state. A stopped
+ * renderer is intentionally not restartable.
  *
  * @ingroup render
  */
@@ -229,10 +253,16 @@ public:
     /**
      * @brief Clears the drawable pixel area and presents one diagnostic frame.
      * @param frame Validated clear colour shared by game and editor composition.
+     * @return Presented, deferred at zero extent, or deferred for a surface change.
      * @throws std::invalid_argument if frame components violate the public contract.
      * @throws RendererError if lifecycle, drawable query, API work, or swap fails.
+     *
+     * Invalid input and a typed deferral leave the renderer running. Once native
+     * frame work fails, the backend enters `failed`; callers must shut it down and
+     * must not retry presentation on that object.
      */
-    virtual void render_frame(const DiagnosticFrame& frame) = 0;
+    [[nodiscard]] virtual FramePresentationResult render_frame(
+        const DiagnosticFrame& frame) = 0;
 
     /**
      * @brief Returns facts queried from the active graphics context.
@@ -244,9 +274,9 @@ public:
     /**
      * @brief Releases native graphics state after its window has been hidden.
      *
-     * Shutdown accepts both running and failed-start states, enabling rollback
-     * of partially created native state. It rejects dormant, stopping, and
-     * already-stopped states.
+     * Shutdown accepts running and failed states, enabling rollback of partial
+     * startup and terminal native-frame state. It rejects dormant, stopping,
+     * and already-stopped states.
      *
      * @throws RendererError if lifecycle or native cleanup fails.
      */

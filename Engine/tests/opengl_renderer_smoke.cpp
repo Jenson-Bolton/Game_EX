@@ -54,7 +54,8 @@ bool run_smoke() {
         renderer->state() == game_ex::render::RendererLifecycleState::dormant,
         "new OpenGL renderer is dormant");
     try {
-        renderer->render_frame(game_ex::render::foundation_diagnostic_frame());
+        static_cast<void>(renderer->render_frame(
+            game_ex::render::foundation_diagnostic_frame()));
         passed &= check(false, "render before start is rejected");
     } catch (const game_ex::render::RendererError& error) {
         passed &= check(
@@ -84,19 +85,24 @@ bool run_smoke() {
               << " core | " << diagnostics.vendor << " | " << diagnostics.device << '\n';
 
     try {
-        renderer->render_frame({
+        static_cast<void>(renderer->render_frame({
             std::numeric_limits<float>::quiet_NaN(),
             0.0F,
             0.0F,
-            1.0F});
+            1.0F}));
         passed &= check(false, "non-finite real-backend frame is rejected");
     } catch (const std::invalid_argument&) {
         passed &= check(true, "non-finite real-backend frame is rejected");
     }
 
-    renderer->render_frame(game_ex::render::foundation_diagnostic_frame());
+    static_cast<void>(renderer->render_frame(
+        game_ex::render::foundation_diagnostic_frame()));
     window->show();
-    renderer->render_frame(game_ex::render::foundation_diagnostic_frame());
+    const auto visible_result = renderer->render_frame(
+        game_ex::render::foundation_diagnostic_frame());
+    passed &= check(
+        visible_result == game_ex::render::FramePresentationResult::presented,
+        "OpenGL presents after the window becomes visible");
     static_cast<void>(platform->pump_events());
     window->hide();
     renderer->shutdown();

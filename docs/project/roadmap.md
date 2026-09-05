@@ -1,6 +1,9 @@
 # Roadmap
 
-This roadmap is directional. M0, the validated serial/controlled-parallel parts of M1, the OpenGL half of M2, and the dependency-free package/codec portion of M4 are implemented. Later slices require specifications and architecture decisions before durable interfaces or dependencies are introduced.
+This roadmap is directional. M0, the validated serial/controlled-parallel parts
+of M1, the diagnostic OpenGL/Vulkan portion of M2, and the dependency-free
+package/codec portion of M4 are implemented. Later slices require specifications
+and architecture decisions before durable interfaces or dependencies are introduced.
 
 ## M0 — Foundation
 
@@ -10,13 +13,21 @@ Buildable three-project workspace, game window, world-editor window, world-forma
 
 The validated serial startup graph, [bounded JobSystem, and controlled parallel-startup contract](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) are implemented. Logging, configuration, crash reporting, wider diagnostics, profiling, and any broader frame-job model remain later work.
 
-## M2 — Rendering foundation (in progress)
+## M2 — Rendering foundation (diagnostic parity complete; resources pending)
 
-The shared diagnostic Render API, private SDL presentation bridge, and verified OpenGL 4.6 Core clear/present path are implemented. Next add Vulkan 1.3 and explicit selection/fallback policy, prove the same diagnostic content through both APIs, then define render-world extraction without leaking either graphics API into game or editor code.
+The shared diagnostic Render API, private SDL bridge, verified OpenGL 4.6 Core
+path, Vulkan 1.3 synchronization2 transfer-clear path, strict explicit/auto
+selection, and semantic clear-frame parity are implemented. Next define only the
+shader/resource/camera/render-world extraction needed to visualise the existing
+synthetic terrain under both APIs. Captured-pixel parity, wider diagnostics, and
+maintenance1 presentation fences remain later work.
 
 ## M3 — Editor shell
 
-Select the UI approach and establish panels, commands, selection, undo/redo, document state, and safe separation of editor-only and runtime code.
+First load and visualise one `.gexworld` terrain/validity layer in the standalone
+editor with the same engine technologies as the game. Then select the UI approach
+and establish panels, commands, selection, undo/redo, document state, and safe
+separation of editor-only and runtime code.
 
 ## M4 — World format/compiler proof (in progress)
 

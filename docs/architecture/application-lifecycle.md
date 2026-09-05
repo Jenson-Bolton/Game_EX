@@ -1,48 +1,92 @@
 # Application lifecycle
 
-The lifecycle retains a deterministic serial path and adds a bounded controlled-parallel path; the current application uses the latter:
+The application owns a fresh platform, hidden window, renderer, bounded worker
+pool, and startup graph for one run. Renderer selection occurs outside this
+object so each automatic attempt can be a completely new composition.
 
 ```text
-executable composition root
+parse --renderer (default auto)
         |
         v
-create SDL3 Platform
+create fresh SDL Platform
         |
         v
-select OpenGL RendererFactory
-        |
-        v
-create hidden OpenGL-capable Window, dormant Renderer,
-bounded JobSystem, and owned StartupGraph
+create hidden backend-capable Window and dormant Renderer
         |
         v
 Application::run
-  | validate job pool and entire graph
-  | start/verify OpenGL renderer
-  | clear and present the first diagnostic frame while hidden
-  | show window (depends on renderer)
-  | pump events
-  | clear/present the shared diagnostic frame and pace briefly
-  | stop on close request
+  | validate startup graph
+  | start renderer
+  | attempt shared diagnostic presentation while hidden
+  | show window (even if zero extent deferred the hidden attempt)
+  | pump events, render, and briefly pace
+  | timed smoke requires at least one real presentation
   | hide window
-  ` shut down renderer (reverse dependency order)
+  ` shut down renderer
         |
         v
-destroy Renderer, Window, then Platform/SDL3
+destroy Renderer, Window, then Platform/SDL
 ```
 
-`GameEX::Startup` owns ordinary subsystem objects and their stable dependency declarations. It validates missing dependencies and cycles before invoking any `start()` method. Ready nodes use stable lexical ordering, so serial startup does not depend on registration or filesystem order. Normal shutdown exactly reverses successful startup. If a subsystem throws during `start()`, rollback first invokes `shutdown()` on that potentially partial subsystem and then on every earlier subsystem in reverse order.
+## Startup and shutdown ownership
 
-The graph is single-use and protects its lifecycle states. Validation errors leave it configurable because no work has started; runtime start or shutdown failures are terminal. Destruction attempts non-throwing cleanup for a graph still running, while an explicit `shutdown()` reports the first cleanup exception after attempting every remaining cleanup.
+`Application` registers two main-thread-affine subsystems:
 
-Application registers `render.backend` and the dependent `platform.window.visibility` subsystem, both main-thread-affine. Renderer startup includes the first successful clear/present before visibility, so a failed or partially created context is rolled back without showing an unusable window. Reverse graph order hides the window before renderer shutdown. Member declaration order then destroys the startup graph, joins workers, destroys the renderer, destroys its borrowed native window, and finally shuts down SDL. Platform creation, renderer/context operations, event pumping, showing, hiding, and destruction occur on the same composition thread.
+```text
+render.backend --> platform.window.visibility
+```
 
-The current `automatic_exit_after` setting is an automation hook for smoke tests, not a gameplay timer or public command-line design.
+The renderer subsystem starts native API state and makes one hidden presentation
+attempt. `FramePresentationResult::deferred_zero_extent` is allowed because some
+window systems do not provide drawable pixels before visibility. The dependent
+visibility subsystem then calls `Window::show()` and records monotonic
+`Application::reached_window_visibility()` evidence. The event loop keeps
+presenting the same `foundation_diagnostic_frame()`. A timed run succeeds only
+after a renderer reports `presented`; timer survival alone is not evidence.
 
-## Controlled parallel startup
+Normal reverse shutdown hides the window before releasing graphics state. If a
+runtime operation throws, the graph still attempts the same reverse cleanup and
+preserves the original exception. A failing renderer start is itself rolled
+back, allowing partial native handles to be released. Member order destroys the
+renderer before its borrowed Window and the Window before its SDL Platform.
 
-[ADR 0008](../decisions/0008-bounded-jobs-controlled-parallel-startup.md) specifies the implemented ordinarily owned job system with 1–32 workers and synchronous indexed batches. The serial graph path remains available and full pre-validation is unchanged. A lexical ready set governs admission. If its first node is main-thread-affine, that one node runs on the owner and readiness is recomputed. Otherwise the maximal lexical-leading worker-eligible prefix, capped by worker count, runs as one batch and reaches a barrier before readiness is recomputed.
+Platform initialisation, window creation/visibility, renderer lifecycle and
+presentation, event pumping, and destruction remain on the composition thread.
+Wrong-thread renderer destruction fails fast. Renderer and platform instances
+are single-use; there is no global renderer, service locator, or reused native
+state between automatic attempts.
 
-Physical worker completion is intentionally non-deterministic. Logical indices control result placement, primary-failure selection, lifecycle commit, and reverse rollback. After a failure, every admitted job is awaited, later work is not admitted, and cleanup runs serially on the application thread.
+## Renderer-selection attempt boundary
 
-Both the pool and graph must be destroyed on their creating application thread. The implementation ends the process immediately with failure before cleanup if ownership is transferred to another thread for destruction, preventing main-affine shutdown from running on a foreign thread or a worker from joining itself.
+`--renderer=opengl` and `--renderer=vulkan` perform exactly one attempt. Omission
+or `--renderer=auto` tries Vulkan first. An auto attempt may proceed to a new
+OpenGL composition only when all of these are true:
+
+- the failed attempt reports backend `vulkan`;
+- the error code is `unavailable` or `initialization_failed`;
+- `reached_window_visibility()` is false.
+
+The Vulkan category/stage/message is logged before fallback. A renderer error
+after visibility—including an escaped unavailable/initialization category—or a
+presentation/shutdown failure is never caught as fallback. Non-renderer
+exceptions also propagate. This makes a visible failure or a timed no-present
+result observable instead of silently reopening another API.
+
+If Vulkan is compiled out, creating its factory reports a pre-visibility
+`unavailable` error. Explicit Vulkan therefore fails clearly; auto may create a
+fresh OpenGL Platform/Application. A Vulkan window is never repurposed for
+OpenGL because their SDL creation flags differ.
+
+## Startup graph and jobs
+
+`GameEX::Startup` pre-validates missing dependencies and cycles. Ready nodes use
+stable lexical order. Normal shutdown exactly reverses successful startup; a
+start failure first shuts down the potentially partial subsystem and then every
+earlier subsystem in reverse order. Validation failures leave the graph
+configurable, while runtime lifecycle failures are terminal.
+
+`GameEX::Jobs` supplies the existing 1–32-worker synchronous batch primitive.
+Main-thread-affine nodes remain on the owner. Worker-eligible lexical prefixes
+may execute concurrently, but admission, result indexing, primary failure,
+logical commit, and reverse rollback remain deterministic. Neither Jobs nor the
+startup graph is a general frame scheduler.

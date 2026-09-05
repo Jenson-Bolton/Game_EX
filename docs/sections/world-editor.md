@@ -6,7 +6,13 @@ The world editor will author, inspect, validate, and preview world content while
 
 ## Implemented now
 
-`game_ex_world_editor` composes a distinct SDL application identity, the same OpenGL 4.6 Core renderer as the game, a `1440 x 900` resizable top-level window, and the shared diagnostic clear/present loop. Its distinct executable provides the target boundary where editor-only code can be isolated. The shared `GameEX::WorldFormat` library can decode the package that the editor will inspect, but this executable does not yet open or visualise it. As the editor grows, separate editor libraries and dependency checks must enforce that the game target does not link them.
+`game_ex_world_editor` composes a distinct SDL application identity, the same
+selectable OpenGL 4.6 Core/Vulkan 1.3 backends as the game, a `1440 x 900`
+resizable top-level window, and the exact shared diagnostic clear/present loop.
+Its distinct executable is the boundary for editor-only code. The shared
+`GameEX::WorldFormat` library can decode the package that the editor will inspect,
+but this executable does not yet open or visualise it. As it grows, separate
+editor libraries and dependency checks must prevent the game linking editor code.
 
 ## Specification needed next
 
@@ -18,6 +24,10 @@ The world editor will author, inspect, validate, and preview world content while
 - command-line path selection and how the editor invokes or observes offline world compilation;
 - live game preview in-process, another window, or another process;
 - validation/error presentation and source provenance;
-- runtime OpenGL/Vulkan selection policy and the required degree of feature parity beyond the current neutral context diagnostics.
+- feature/capture parity beyond the current shared semantic frame and successful
+  OpenGL/Vulkan presentations.
 
-The next renderer slice adds Vulkan 1.3 and explicit `--renderer` policy against the current shared lifecycle/diagnostics boundary. A later editor slice can then load one `.gexworld` package through `GameEX::WorldFormat` and display terrain/validity data under both backends. It must remain a separate-layer view; combining geographic sources is not part of that rendering step.
+The next editor slice can load one synthetic `.gexworld` package through
+`GameEX::WorldFormat` and display terrain/validity data under both backends. It
+must remain a separate-layer view; combining geographic sources or claiming a
+real source is not part of that rendering step.

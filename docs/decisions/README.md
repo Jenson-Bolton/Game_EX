@@ -16,5 +16,6 @@ Statuses are `Proposed`, `Accepted`, `Superseded`, or `Rejected`. Accepted recor
 - [0008 — Bounded jobs and controlled parallel startup](0008-bounded-jobs-controlled-parallel-startup.md) — Accepted
 - [0009 — Portable terrain stage and package](0009-portable-terrain-stage-and-package.md) — Accepted
 - [0010 — Shared Render API and OpenGL foundation](0010-shared-render-api-opengl-foundation.md) — Accepted
+- [0011 — Vulkan transfer-clear backend and renderer selection](0011-vulkan-transfer-clear-and-renderer-selection.md) — Accepted
 
 Use [the template](0000-template.md) for the next decision.

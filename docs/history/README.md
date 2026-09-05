@@ -12,6 +12,7 @@ Each published Game_EX version has a report that connects its aim, implementatio
 | `v0.1.3` | 2026-09-05 | Released | [Report](reports/v0.1.3.md) | Annotated [`v0.1.3` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.3) | Bounded worker batches and deterministic controlled-parallel startup with explicit affinity and failure barriers. |
 | `v0.1.4` | 2026-09-05 | Released | [Report](reports/v0.1.4.md) | Annotated [`v0.1.4` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.4) | Strict portable terrain stage, deterministic package, runtime reader, provenance, integrity, and CLI inspection. |
 | `v0.1.5` | 2026-09-05 | Released | [Report](reports/v0.1.5.md) | Annotated [`v0.1.5` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.5) | Shared diagnostic Render API, OpenGL 4.6 Core backend, application lifecycle integration, and real game/editor presentation. |
+| `v0.1.6` | 2026-09-05 | Released | [Report](reports/v0.1.6.md) | Annotated [`v0.1.6` tag](https://github.com/Jenson-Bolton/Game_EX/tree/v0.1.6) | Vulkan 1.3 transfer-clear backend, strict renderer selection, semantic cross-technology parity, and validation-backed presentation. |
 | `v0.2.0` | Planned | Planned roll-up | Report created with the release | — | First integrated world-data/compiler/editor capability, summarising its independently verified patch slices. |
 
 ## Bootstrap exception

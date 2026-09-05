@@ -5,6 +5,7 @@
 
 #include "game_ex/core/application.hpp"
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -28,13 +29,20 @@ public:
     /**
      * @brief Binds the subsystem to an Application-owned renderer.
      * @param renderer Renderer that outlives this startup graph entry.
+     * @param presented_frames Application-owned successful presentation count.
      */
-    explicit RendererSubsystem(render::Renderer& renderer) noexcept : renderer_(renderer) {}
+    RendererSubsystem(
+        render::Renderer& renderer,
+        std::uint64_t& presented_frames) noexcept
+        : renderer_(renderer), presented_frames_(presented_frames) {}
 
     /** @copydoc game_ex::startup::Subsystem::start */
     void start() override {
         renderer_.start();
-        renderer_.render_frame(render::foundation_diagnostic_frame());
+        if (renderer_.render_frame(render::foundation_diagnostic_frame())
+            == render::FramePresentationResult::presented) {
+            ++presented_frames_;
+        }
     }
 
     /** @copydoc game_ex::startup::Subsystem::shutdown */
@@ -45,6 +53,9 @@ public:
 private:
     /** Renderer owned by the containing Application. */
     render::Renderer& renderer_;
+
+    /** Successful presentation count owned by the containing Application. */
+    std::uint64_t& presented_frames_;
 };
 
 /**
@@ -55,12 +66,17 @@ public:
     /**
      * @brief Binds the subsystem to an Application-owned window.
      * @param window Window that outlives this startup graph entry.
+     * @param reached_visibility Monotonic evidence set after show succeeds.
      */
-    explicit WindowVisibilitySubsystem(platform::Window& window) noexcept : window_(window) {}
+    WindowVisibilitySubsystem(
+        platform::Window& window,
+        bool& reached_visibility) noexcept
+        : window_(window), reached_visibility_(reached_visibility) {}
 
     /** @copydoc game_ex::startup::Subsystem::start */
     void start() override {
         window_.show();
+        reached_visibility_ = true;
     }
 
     /** @copydoc game_ex::startup::Subsystem::shutdown */
@@ -71,6 +87,9 @@ public:
 private:
     /** Window owned by the containing Application. */
     platform::Window& window_;
+
+    /** Monotonic Application-owned visibility evidence. */
+    bool& reached_visibility_;
 };
 
 } // namespace
@@ -103,7 +122,15 @@ Application::Application(
     }
     renderer_window.graphics_api = required_api;
 
-    window_ = platform_->create_window(renderer_window);
+    try {
+        window_ = platform_->create_window(renderer_window);
+    } catch (const std::runtime_error& error) {
+        throw render::RendererError{
+            render::RendererErrorCode::initialization_failed,
+            renderer_factory.backend(),
+            "Could not create a native window for the selected renderer: "
+                + std::string{error.what()}};
+    }
     if (!window_) {
         throw std::invalid_argument("Platform returned a null window");
     }
@@ -120,12 +147,13 @@ Application::Application(
     startup_graph_.add({
         std::string{renderer_subsystem_id},
         {},
-        std::make_unique<RendererSubsystem>(*renderer_),
+        std::make_unique<RendererSubsystem>(*renderer_, presented_frames_),
         startup::StartupAffinity::main_thread});
     startup_graph_.add({
         std::string{window_visibility_subsystem_id},
         {std::string{renderer_subsystem_id}},
-        std::make_unique<WindowVisibilitySubsystem>(*window_),
+        std::make_unique<WindowVisibilitySubsystem>(
+            *window_, reached_window_visibility_),
         startup::StartupAffinity::main_thread});
 }
 
@@ -145,8 +173,19 @@ int Application::run() {
                 }
             }
 
-            renderer_->render_frame(render::foundation_diagnostic_frame());
+            if (renderer_->render_frame(render::foundation_diagnostic_frame())
+                == render::FramePresentationResult::presented) {
+                ++presented_frames_;
+            }
             std::this_thread::sleep_for(run_configuration_.idle_sleep);
+        }
+
+        if (run_configuration_.automatic_exit_after.has_value()
+            && presented_frames_ == 0U) {
+            throw render::RendererError{
+                render::RendererErrorCode::presentation_failed,
+                renderer_->backend(),
+                "Automated application run ended without presenting a frame"};
         }
     } catch (...) {
         try {
@@ -159,6 +198,10 @@ int Application::run() {
 
     startup_graph_.shutdown();
     return 0;
+}
+
+bool Application::reached_window_visibility() const noexcept {
+    return reached_window_visibility_;
 }
 
 } // namespace game_ex::core

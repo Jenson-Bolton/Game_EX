@@ -41,6 +41,7 @@ endif()
 add_library(
     gameex_game_app STATIC
     src/common/desktop_application.cpp
+    src/common/renderer_selection.cpp
 )
 add_library(GameEX::GameApp ALIAS gameex_game_app)
 
@@ -50,6 +51,8 @@ target_include_directories(
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/common"
 )
 target_link_libraries(
     gameex_game_app
@@ -59,6 +62,12 @@ target_link_libraries(
         GameEX::RenderOpenGL
         GameEX::WorldFormat
 )
+if(TARGET GameEX::RenderVulkan)
+    target_link_libraries(gameex_game_app PRIVATE GameEX::RenderVulkan)
+    target_compile_definitions(gameex_game_app PRIVATE GAMEEX_HAS_VULKAN_BACKEND=1)
+else()
+    target_compile_definitions(gameex_game_app PRIVATE GAMEEX_HAS_VULKAN_BACKEND=0)
+endif()
 gameex_apply_version(gameex_game_app)
 gameex_game_enable_warnings(gameex_game_app)
 
@@ -72,10 +81,61 @@ target_compile_features(game_ex_world_editor PRIVATE cxx_std_20)
 target_link_libraries(game_ex_world_editor PRIVATE GameEX::GameApp)
 gameex_game_enable_warnings(game_ex_world_editor)
 
-if(BUILD_TESTING AND GAMEEX_ENABLE_GUI_SMOKE_TESTS)
-    add_test(NAME game.window_smoke COMMAND game_ex --quit-after-ms=250)
-    set_tests_properties(game.window_smoke PROPERTIES LABELS "gui;smoke" TIMEOUT 15)
+if(BUILD_TESTING)
+    add_executable(
+        gameex_renderer_selection_tests
+        tests/renderer_selection_tests.cpp
+        src/common/renderer_selection.cpp
+    )
+    target_compile_features(gameex_renderer_selection_tests PRIVATE cxx_std_20)
+    target_include_directories(
+        gameex_renderer_selection_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/common"
+    )
+    target_link_libraries(gameex_renderer_selection_tests PRIVATE GameEX::Render)
+    gameex_game_enable_warnings(gameex_renderer_selection_tests)
+    add_test(NAME game.renderer_selection COMMAND gameex_renderer_selection_tests)
+    set_tests_properties(game.renderer_selection PROPERTIES LABELS "unit")
+endif()
 
-    add_test(NAME world_editor.window_smoke COMMAND game_ex_world_editor --quit-after-ms=250)
-    set_tests_properties(world_editor.window_smoke PROPERTIES LABELS "gui;smoke" TIMEOUT 15)
+if(BUILD_TESTING AND GAMEEX_ENABLE_GUI_SMOKE_TESTS)
+    add_test(
+        NAME game.window_opengl_smoke
+        COMMAND game_ex --renderer=opengl --quit-after-ms=250
+    )
+    set_tests_properties(game.window_opengl_smoke PROPERTIES LABELS "gui;smoke;opengl" TIMEOUT 15)
+
+    add_test(
+        NAME world_editor.window_opengl_smoke
+        COMMAND game_ex_world_editor --quit-after-ms=250 --renderer=opengl
+    )
+    set_tests_properties(world_editor.window_opengl_smoke PROPERTIES LABELS "gui;smoke;opengl" TIMEOUT 15)
+
+    if(TARGET GameEX::RenderVulkan)
+        add_test(
+            NAME game.window_vulkan_smoke
+            COMMAND game_ex --renderer=vulkan --quit-after-ms=250
+        )
+        add_test(
+            NAME world_editor.window_vulkan_smoke
+            COMMAND game_ex_world_editor --quit-after-ms=250 --renderer=vulkan
+        )
+        add_test(
+            NAME game.window_auto_smoke
+            COMMAND game_ex --quit-after-ms=250
+        )
+        foreach(gameex_vulkan_app_test IN ITEMS
+            game.window_vulkan_smoke
+            world_editor.window_vulkan_smoke
+            game.window_auto_smoke
+        )
+            set_tests_properties(
+                ${gameex_vulkan_app_test}
+                PROPERTIES
+                    LABELS "gui;smoke;vulkan"
+                    TIMEOUT 15
+                    ENVIRONMENT_MODIFICATION
+                        "VK_LAYER_PATH=unset:;VK_ADD_LAYER_PATH=unset:;VK_INSTANCE_LAYERS=unset:;VK_LOADER_LAYERS_ENABLE=unset:;VK_LOADER_LAYERS_ALLOW=unset:;VK_IMPLICIT_LAYER_PATH=set:${GAMEEX_VULKAN_EMPTY_IMPLICIT_LAYER_DIRECTORY};VK_ADD_IMPLICIT_LAYER_PATH=unset:;VK_LOADER_DEBUG=unset:;VK_LOADER_LAYERS_DISABLE=set:~implicit~"
+            )
+        endforeach()
+    endif()
 endif()

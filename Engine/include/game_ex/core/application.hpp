@@ -11,6 +11,7 @@
 #include "game_ex/startup/startup_graph.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <optional>
 
@@ -23,7 +24,8 @@ namespace game_ex::core {
 struct RunConfiguration final {
     /**
      * Optional lifetime used by automated smoke tests. A normal application
-     * leaves this empty and runs until the user closes its window.
+     * leaves this empty and runs until the user closes its window. A timed run
+     * succeeds only after at least one frame was actually presented.
      */
     std::optional<std::chrono::milliseconds> automatic_exit_after;
 
@@ -52,8 +54,7 @@ public:
      * @param run Main-loop timing and optional smoke-test lifetime.
      * @throws std::invalid_argument if composition inputs or run are invalid.
      * @throws std::system_error if the bootstrap worker pool cannot create a thread.
-     * @throws std::runtime_error if the platform cannot create the required window.
-     * @throws render::RendererError if the renderer rejects the created window.
+     * @throws render::RendererError if native window creation or renderer setup fails.
      * @throws std::bad_alloc if owned runtime objects cannot be allocated.
      */
     Application(
@@ -79,6 +80,15 @@ public:
      */
     int run();
 
+    /**
+     * @brief Reports whether this application has ever shown its native window.
+     * @return True after the visibility subsystem completed startup.
+     *
+     * This monotonic evidence lets renderer auto-selection distinguish a safe
+     * pre-visibility initialization fallback from a visible runtime failure.
+     */
+    [[nodiscard]] bool reached_window_visibility() const noexcept;
+
 private:
     /** Platform runtime; declared before window so it is destroyed after it. */
     std::unique_ptr<platform::Platform> platform_;
@@ -94,6 +104,12 @@ private:
 
     /** Owned deterministic lifecycle for application runtime subsystems. */
     startup::StartupGraph startup_graph_;
+
+    /** Frames confirmed as presented by the renderer during this run. */
+    std::uint64_t presented_frames_{};
+
+    /** Monotonic evidence that native window visibility completed startup. */
+    bool reached_window_visibility_{};
 
     /** Main-loop configuration copied at construction. */
     RunConfiguration run_configuration_;

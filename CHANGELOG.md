@@ -6,6 +6,50 @@ All notable Game_EX changes are recorded here. Detailed implementation evidence,
 
 No changes recorded.
 
+## [0.1.6] - 2026-09-05
+
+### Added
+
+- `GameEX::RenderVulkan`, a real Vulkan 1.3/synchronization2 transfer-clear
+  backend with deterministic device, queue, sRGB format, extent, image-count,
+  composite-alpha, and FIFO presentation policy.
+- One-frame-in-flight submission, transactional swapchain generations,
+  per-image present-wait semaphores, zero-extent/surface-change deferral, typed
+  failures, optional/required validation, and neutral presentation diagnostics.
+- Strict `--renderer=opengl|vulkan|auto` parsing for game and editor; omission
+  means auto, explicit choices never fall back, and auto uses a fresh composition
+  only after an eligible hidden Vulkan failure.
+- Default-on Vulkan SDK discovery with an explicit opt-out, pure policy/fallback
+  tests, real repeated-presentation Vulkan and validation smokes, and explicit
+  OpenGL/Vulkan game/editor smokes.
+- ADR 0011 and updated rendering, application, build, testing, scope, roadmap,
+  section, and history documentation.
+
+### Changed
+
+- `Renderer::render_frame` now reports presented, zero-extent deferred, or
+  surface-change deferred outcomes; native-frame exceptions make the renderer
+  terminal until shutdown.
+- Application records monotonic visibility evidence and timed runs require at
+  least one successful presentation rather than timer survival.
+- Both applications now provide the same exact linear diagnostic frame to real
+  OpenGL and Vulkan implementations; this is semantic/presentation parity, not
+  a pixel-equality claim.
+- The project version is now `0.1.6`. Existing GLAD 2.0.8 hashes and LF controls
+  are unchanged.
+
+### Limitations
+
+- This slice adds no shaders, SPIR-V, meshes, resources, terrain loading,
+  world-editor visualisation, gameplay, or simulation.
+- The committed world fixture is still synthetic; no real source adapter is
+  accepted or combined.
+- Vulkan evidence is Windows/MSVC/NVIDIA only. Conventional swapchain recreation
+  does not claim fully signalled WSI retirement without a future maintenance1
+  presentation-fence decision.
+
+See the [`v0.1.6` technical report](docs/history/reports/v0.1.6.md).
+
 ## [0.1.5] - 2026-09-05
 
 ### Added
